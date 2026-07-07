@@ -265,4 +265,4 @@ async def ingest_playlist(
         "message": "Playlist ingested successfully",
         "playlist_title": new_playlist.title,
         "total_videos_added": len(videos_to_insert)
-    }
+    }
