@@ -1,3 +1,4 @@
+import httpx
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel, create_engine, Session, select
@@ -19,6 +20,7 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key")
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
@@ -175,3 +177,92 @@ def complete_video(
 @app.get('/')
 def read_root():
     return {"message": "Hello World! The api is running."}
+
+
+class PlaylistIngestRequest(BaseModel):
+    playlist_id: str
+
+@app.post("/api/ingest/playlist")
+async def ingest_playlist(
+    request: PlaylistIngestRequest,
+    current_user: User = Depends(get_current_user), # Protects the route
+    session: Session = Depends(get_session)
+):
+    if not YOUTUBE_API_KEY:
+        raise HTTPException(status_code=500, detail="YouTube API key not configured.")
+
+    base_url = "https://www.googleapis.com/youtube/v3"
+
+    async with httpx.AsyncClient() as client:
+        # 1. Fetch Playlist Metadata
+        playlist_resp = await client.get(
+            f"{base_url}/playlists",
+            params={
+                "part": "snippet",
+                "id": request.playlist_id,
+                "key": YOUTUBE_API_KEY
+            }
+        )
+        playlist_data = playlist_resp.json()
+
+        if not playlist_data.get("items"):
+            raise HTTPException(status_code=404, detail="YouTube playlist not found.")
+
+        snippet = playlist_data["items"][0]["snippet"]
+        
+        # 2. Save Playlist to CockroachDB (Matches models.py EXACTLY)
+        new_playlist = Playlist(
+            yt_playlist_id=request.playlist_id, 
+            title=snippet.get("title", "Unknown Title"),
+            description=snippet.get("description", "")
+        )
+        session.add(new_playlist)
+        session.commit()
+        session.refresh(new_playlist)
+
+        # 3. Fetch all Videos in the Playlist
+        videos_to_insert = []
+        next_page_token = None
+        seq_order = 1
+
+        while True:
+            items_resp = await client.get(
+                f"{base_url}/playlistItems",
+                params={
+                    "part": "snippet",
+                    "playlistId": request.playlist_id,
+                    "maxResults": 50, # Max allowed by YouTube API
+                    "pageToken": next_page_token,
+                    "key": YOUTUBE_API_KEY
+                }
+            )
+            items_data = items_resp.json()
+
+            for item in items_data.get("items", []):
+                video_snippet = item["snippet"]
+                
+                # 4. Create Video records (Matches models.py EXACTLY)
+                video_record = Video(
+                    playlist_id=new_playlist.id,
+                    yt_video_id=video_snippet["resourceId"]["videoId"],
+                    title=video_snippet["title"],
+                    sequence_order=seq_order,
+                    xp_reward=50,
+                    yt_metadata=video_snippet # Saves the raw JSON to your sa_column=Column(JSON)
+                )
+                videos_to_insert.append(video_record)
+                seq_order += 1
+
+            next_page_token = items_data.get("nextPageToken")
+            if not next_page_token:
+                break # Exit loop when no more pages exist
+
+        # 5. Bulk save videos to Database
+        session.add_all(videos_to_insert)
+        session.commit()
+
+    return {
+        "message": "Playlist ingested successfully",
+        "playlist_title": new_playlist.title,
+        "total_videos_added": len(videos_to_insert)
+    }
