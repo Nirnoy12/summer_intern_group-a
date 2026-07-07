@@ -1,100 +1,115 @@
-Contributing to the LMS Gamified Ingestion Platform
+# Contributing to the Gamified LMS Platform
 
-First off, welcome to the team! We are thrilled to have you here. This document outlines the process for contributing to our platform. Following these guidelines ensures that our codebase stays clean, our team avoids merge conflicts, and we can move fast.
+Welcome to the team! This document serves as your complete guide to understanding the project's architecture, technologies, data flow, and exact instructions on how to run the application locally.
 
-🧠 Core Philosophy
+## 🛠️ Technology Stack
 
-Never push directly to main. All work happens in feature branches on your personal fork.
+Our platform is divided into a decoupled Frontend and Backend architecture:
 
-Keep Pull Requests (PRs) small and focused. One feature/bug per PR.
+### Frontend (User Interface)
+- **Framework**: React 19 with Vite for lightning-fast builds.
+- **Language**: TypeScript for type safety.
+- **Styling**: Tailwind CSS v4 and `shadcn/ui` components for a modern, glassmorphic, and dynamic design.
+- **Routing**: `react-router-dom` for client-side navigation.
+- **State/API**: Standard React hooks (`useState`, `useEffect`) and `axios` for API calls.
 
-Communicate. If you're stuck, ask in the team chat.
+### Backend (API Server)
+- **Framework**: FastAPI (Python 3.10+) for high-performance async endpoints.
+- **Database ORM**: SQLModel (built on top of SQLAlchemy and Pydantic).
+- **Database Engine**: CockroachDB (Serverless distributed SQL).
+- **Authentication**: JWT (JSON Web Tokens) with Argon2 password hashing.
+- **External Integrations**: `httpx` for async calls to the YouTube Data API v3.
 
-🔄 The Development Workflow
+---
 
-We use a strict Fork and Pull Request workflow.
+## 🌊 Architecture & Data Flow
 
-1. Sync Your Fork (Crucial)
+Understanding how data moves through the application is critical for contributing effectively. Here is the exact data lifecycle:
 
-Before starting any new work, you must sync your local main branch with the team's official main branch.
+### 1. Playlist Ingestion Flow
+1. **Trigger**: An admin/user sends a POST request to `/api/ingest/playlist` with a YouTube Playlist ID.
+2. **External API**: The FastAPI backend uses `httpx` to call the **YouTube Data API v3**.
+3. **Database Write**: The backend parses the YouTube metadata and saves a new `Playlist` record and multiple `Video` records (maintaining sequence order) directly into CockroachDB via SQLModel.
 
-git checkout main
-git fetch upstream
-git merge upstream/main
-git push origin main
+### 2. User Authentication Flow
+1. **Register/Login**: The React frontend (`Login.tsx`/`Register.tsx`) sends credentials to `/api/auth/register` or `/api/auth/login`.
+2. **Token Generation**: The backend hashes the password (Argon2), saves the `User`, and generates a JWT `access_token`.
+3. **Storage**: The frontend stores this token in `localStorage` and attaches it to the `Authorization: Bearer <token>` header for all subsequent API requests.
 
+### 3. Dashboard Data Flow
+1. **Initialization**: When a user navigates to `/dashboard`, the React component mounts.
+2. **Data Fetching**: `Dashboard.tsx` concurrently calls:
+   - `GET /api/users/me` -> Returns `total_xp`, `current_level`, `current_streak`.
+   - `GET /api/playlists` -> Returns all available playlists and their video counts.
+3. **Rendering**: The UI renders glowing stats and interactive course cards.
 
-2. Create a Feature Branch
+### 4. Course Player & Gamification Flow
+1. **Video Playback**: In `CoursePlayer.tsx`, the frontend calls `GET /api/playlists/{playlist_id}/videos` to get the list of videos and checks which ones the current user has already completed via the `UserProgress` table.
+2. **XP Reward**: When the user finishes a video, they click "Mark as Complete".
+3. **Backend Logic**: The frontend sends a `POST /api/progress/complete-video/{video_id}` request.
+4. **Database Transaction**: The backend creates a `UserProgress` record, adds a row to `XpLog`, increments the user's `total_xp`, calculates if they leveled up, and commits to CockroachDB. The UI updates instantly.
 
-Always create a new branch from your updated main branch. Use the following naming conventions:
+---
 
-feature/short-description (e.g., feature/login-ui, feature/youtube-ingestion)
+## 🚀 How to Run the Application Locally
 
-fix/short-description (e.g., fix/db-connection, fix/button-alignment)
+Follow these exact steps to get the full stack running on your machine.
 
-chore/short-description (e.g., chore/update-readme, chore/add-dependencies)
+### Step 1: Database Credentials
+Before starting, ask the Tech Lead for the **CockroachDB Connection String** and the **YouTube API Key**.
+Create a file named `.env` in the `backend/` directory and populate it:
+```env
+DATABASE_URL=cockroachdb://<user>:<password>@<host>:26257/defaultdb?sslmode=verify-full&sslrootcert=system
+SECRET_KEY=your-jwt-secret-key
+YOUTUBE_API_KEY=your-youtube-api-key
+```
 
-git checkout -b feature/your-feature-name
+### Step 2: Start the Backend (FastAPI)
+Open your terminal and navigate to the backend folder:
+```bash
+cd backend
+```
+Create and activate a Python virtual environment:
+```bash
+# Windows
+python -m venv venv
+.\venv\Scripts\Activate
 
+# Mac/Linux
+python -m venv venv
+source venv/bin/activate
+```
+Install the exact required dependencies:
+```bash
+pip install -r requirements.txt
+```
+Run the server:
+```bash
+uvicorn main:app --reload
+```
+✅ The backend API is now running at `http://127.0.0.1:8000`
+✅ Interactive Swagger API Docs available at `http://127.0.0.1:8000/docs`
 
-3. Commit Your Changes
+### Step 3: Start the Frontend (React + Vite)
+Open a **new, separate terminal** and navigate to the frontend folder:
+```bash
+cd frontend
+```
+Install Node modules:
+```bash
+npm install
+```
+Start the Vite development server:
+```bash
+npm run dev
+```
+✅ The frontend UI is now running at `http://localhost:5173`
 
-Write clear, concise commit messages using Conventional Commits.
+---
 
-Format: <type>(<scope>): <description>
-Examples:
+## 🔄 Contribution Workflow Rules
 
-feat(frontend): add interactive progress bar to dashboard
-
-fix(backend): resolve unique constraint error on user registration
-
-docs: update setup instructions for windows users
-
-chore(frontend): install tailwindcss and lucide-react
-
-4. Push and Open a Pull Request
-
-Push your branch to your personal fork:
-
-git push -u origin feature/your-feature-name
-
-
-Then, go to the original team repository on GitHub and click "Compare & pull request".
-
-📋 Pull Request (PR) Guidelines
-
-When opening a PR, please ensure you:
-
-Describe the changes: What did you add, fix, or remove?
-
-Link the issue: If this PR solves a specific task or issue, mention it.
-
-Keep it focused: Don't mix backend database migrations with frontend UI tweaks in the same PR unless they are strictly dependent.
-
-Wait for review: Another team member or the Tech Lead must review and approve your code before it can be merged.
-
-💻 Coding Standards
-
-Backend (Python / FastAPI)
-
-We use Python 3.10+.
-
-Type Hints: Always use Python type hints for function arguments and return types.
-
-Database: All database interactions must use SQLModel. Do not write raw SQL queries.
-
-Environment Variables: Never hardcode passwords or API keys. Always use os.getenv() and the .env file.
-
-Frontend (React / TypeScript)
-
-We use TypeScript. Avoid using any type whenever possible. Define interfaces/types for your data.
-
-Components: Use functional components and React Hooks (useState, useEffect).
-
-Styling: We use Tailwind CSS. Avoid inline styles (style={{...}}) unless absolutely necessary for dynamic values.
-
-UI Components: We rely on Shadcn UI and Lucide React icons for a consistent design system.
-
-🚀 Need Help Setting Up?
-
-If you haven't set up the project on your local machine yet, please read the README.md for step-by-step instructions on running the FastAPI backend and React frontend.
+1. **Never push to `main` directly.** All work must happen on feature branches (`feature/...`, `fix/...`, `chore/...`).
+2. **Sync your fork** with the upstream repository before starting new work.
+3. Open a Pull Request (PR) against the manager's repository when your feature is complete.
+4. Ensure your frontend code compiles (`npm run build`) and your backend has no syntax errors before opening a PR.
