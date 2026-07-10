@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Trophy, Flame, PlayCircle, Loader2, Plus, X } from "lucide-react";
 import API from "@/services/auth";
 import { useAuth } from "@/context/AuthContext";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 
 export default function Dashboard() {
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
   const [user, setUser] = useState<any>(null);
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,8 +30,11 @@ export default function Dashboard() {
       ]);
       setUser(userRes.data);
       setPlaylists(playlistsRes.data);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch dashboard data", err);
+      if (err.response?.status === 401) {
+        logout();
+      }
     } finally {
       setLoading(false);
     }
@@ -74,10 +79,19 @@ export default function Dashboard() {
     }
   };
 
-  if (loading || !user) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-950">
-        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground space-y-4">
+        <p className="text-xl text-muted-foreground font-semibold">Failed to load user data. Your session may have expired.</p>
+        <Button onClick={logout} variant="default">Back to Login</Button>
       </div>
     );
   }
@@ -86,83 +100,104 @@ export default function Dashboard() {
   const progressPercent = (user.total_xp / xpForNextLevel) * 100;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-50 py-10">
-      <div className="max-w-5xl mx-auto p-6 space-y-8">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="min-h-screen text-foreground transition-colors duration-300 relative">
+      <AnimatedBackground />
+      <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6 relative z-10">
+        {/* Header */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pt-4">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
-              Welcome back!
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+              Welcome back
             </h1>
-            <p className="text-zinc-400 text-lg mt-1">Select a course to continue leveling up.</p>
+            <p className="text-muted-foreground mt-1">Select a course to continue.</p>
           </div>
+          <ThemeToggle />
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="bg-zinc-900/50 backdrop-blur-md border-zinc-800 shadow-xl hover:border-zinc-700 transition-colors">
+        {/* Stat Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Total XP */}
+          <Card className="glass-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-400">Total XP</CardTitle>
-              <Trophy className="h-5 w-5 text-yellow-500 drop-shadow-md" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total XP</CardTitle>
+              <Trophy className="h-5 w-5 text-amber-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black text-white">{user.total_xp}</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-zinc-900/50 backdrop-blur-md border-zinc-800 shadow-xl hover:border-zinc-700 transition-colors">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-400">Current Level</CardTitle>
-              <div className="h-4 w-4 rounded-full bg-blue-500 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-black text-white">Lvl {user.current_level}</div>
-              <Progress value={progressPercent} className="h-2 mt-4 bg-zinc-800" />
-              <p className="text-xs text-zinc-500 mt-2 font-medium">{xpForNextLevel - user.total_xp} XP to Level {user.current_level + 1}</p>
+              <div className="text-4xl font-semibold tracking-tight">{user.total_xp}</div>
             </CardContent>
           </Card>
 
-          <Card className="bg-zinc-900/50 backdrop-blur-md border-zinc-800 shadow-xl hover:border-zinc-700 transition-colors">
+          {/* Current Level */}
+          <Card className="glass-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-zinc-400">Learning Streak</CardTitle>
-              <Flame className="h-5 w-5 text-orange-500 drop-shadow-md" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Current Level</CardTitle>
+              <div className="h-3 w-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black text-white">{user.current_streak} Days</div>
+              <div className="text-4xl font-semibold tracking-tight">Level {user.current_level}</div>
+              <Progress value={progressPercent} className="h-2.5 mt-4 rounded-full bg-muted overflow-hidden [&>div]:bg-blue-500" />
+              <p className="text-xs text-muted-foreground mt-3 font-medium">
+                {xpForNextLevel - user.total_xp} XP to Level {user.current_level + 1}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Learning Streak */}
+          <Card className="glass-card">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Learning Streak</CardTitle>
+              <Flame className="h-5 w-5 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-semibold tracking-tight">
+                {user.current_streak} <span className="text-lg text-muted-foreground font-medium">Days</span>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="pt-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <h2 className="text-2xl font-bold text-zinc-100 flex items-center gap-2">
-              Available Courses
-            </h2>
-            <Button onClick={() => setShowModal(true)} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-[0_0_15px_rgba(59,130,246,0.4)] transition-all">
-              <Plus className="mr-2 h-5 w-5" /> Import Playlist
+        {/* Courses Section */}
+        <div className="pt-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+            <h2 className="text-2xl font-semibold">Your Courses</h2>
+            <Button onClick={() => setShowModal(true)} variant="default" className="active:scale-95 transition-transform">
+              <Plus className="mr-2 h-4 w-4" /> Import Playlist
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {playlists.length === 0 ? (
-              <div className="col-span-2 text-center p-10 bg-zinc-900/30 rounded-2xl border border-zinc-800 border-dashed">
-                <p className="text-zinc-400 mb-4">No playlists available.</p>
-                <Button onClick={() => setShowModal(true)} variant="outline" className="border-zinc-700 text-zinc-300 hover:text-white">
+              <div className="col-span-2 text-center py-16 px-6 rounded-lg border border-dashed border-border">
+                <p className="text-muted-foreground mb-4">No courses yet. Import a playlist to get started.</p>
+                <Button onClick={() => setShowModal(true)} variant="outline">
                   Import your first playlist
                 </Button>
               </div>
             ) : playlists.map((playlist) => (
-              <Card key={playlist.id} className="bg-zinc-900/60 border-zinc-800 flex flex-col hover:border-blue-500/50 hover:shadow-[0_0_15px_rgba(59,130,246,0.15)] transition-all duration-300 group">
-                <CardHeader>
-                  <div className="flex justify-between items-start mb-3">
-                    <Badge variant="secondary" className="bg-zinc-800/80 text-blue-400 font-semibold border-none">
+              <Card
+                key={playlist.id}
+                className="glass-card flex flex-col hover:-translate-y-1 hover:border-primary/30 overflow-hidden"
+              >
+                <div className="h-40 w-full overflow-hidden bg-muted">
+                  <img
+                    src={playlist.thumbnail_url || `https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80`}
+                    alt="Course Thumbnail"
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                  />
+                </div>
+                <CardHeader className="pt-5">
+                  <div className="flex justify-between items-start mb-2">
+                    <Badge variant="secondary">
                       {playlist.video_count} Videos
                     </Badge>
                   </div>
-                  <CardTitle className="text-xl text-zinc-100 group-hover:text-blue-400 transition-colors">{playlist.title}</CardTitle>
-                  <CardDescription className="text-zinc-400 mt-2 line-clamp-2">{playlist.description}</CardDescription>
+                  <CardTitle className="text-lg line-clamp-1">{playlist.title}</CardTitle>
+                  <CardDescription className="mt-1 line-clamp-2">{playlist.description}</CardDescription>
                 </CardHeader>
-                <CardContent className="mt-auto pt-4">
-                  <Link to={`/playlist/${playlist.id}`}>
-                    <Button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all">
-                      <PlayCircle className="mr-2 h-5 w-5" /> Start Learning
+                <CardContent className="mt-auto pt-2 pb-6">
+                  <Link to={`/playlist/${playlist.id}`} className="block w-full">
+                    <Button className="w-full active:scale-95 transition-transform" variant="default">
+                      <PlayCircle className="mr-2 h-4 w-4" /> Continue
                     </Button>
                   </Link>
                 </CardContent>
@@ -174,51 +209,59 @@ export default function Dashboard() {
 
       {/* Import Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-zinc-700 p-6 rounded-2xl w-full max-w-md shadow-2xl relative">
-            <button 
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-md relative glass-card">
+            <button
               onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
-            <h3 className="text-2xl font-bold text-white mb-2">Import Course</h3>
-            <p className="text-sm text-zinc-400 mb-6">Paste a YouTube playlist link to dynamically generate a new learning roadmap.</p>
-            
-            <div className="space-y-4">
+
+            <CardHeader>
+              <CardTitle className="text-xl">Import Playlist</CardTitle>
+              <CardDescription>
+                Paste a YouTube playlist link to import a new course.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2 block">YouTube Link</label>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">
+                  YouTube Link
+                </label>
                 <input
                   type="text"
                   placeholder="https://youtube.com/playlist?list=..."
                   value={importUrl}
                   onChange={(e) => setImportUrl(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors"
                 />
               </div>
-              
+
               {importError && (
-                <div className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 p-3 rounded-lg">
+                <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-md">
                   {importError}
                 </div>
               )}
 
-              <Button 
-                onClick={handleImport} 
+              <Button
+                onClick={handleImport}
                 disabled={importLoading}
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-6 rounded-xl text-lg transition-all"
+                className="w-full"
+                variant="default"
               >
                 {importLoading ? (
                   <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Generating Roadmap...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Importing...
                   </>
                 ) : (
                   "Import Course"
                 )}
               </Button>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

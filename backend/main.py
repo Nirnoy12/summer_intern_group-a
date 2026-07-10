@@ -272,9 +272,24 @@ def get_playlists(session: Session = Depends(get_session)):
     playlists = session.exec(select(Playlist).order_by(Playlist.created_at.desc())).all()
     result = []
     for p in playlists:
-        v_count = session.exec(select(Video).where(Video.playlist_id == p.id)).all()
+        v_count = session.exec(select(Video).where(Video.playlist_id == p.id).order_by(Video.sequence_order)).all()
         p_dict = p.model_dump()
         p_dict["video_count"] = len(v_count)
+        
+        # Get thumbnail from the first video
+        if len(v_count) > 0:
+            first_video = v_count[0]
+            try:
+                # Try to get high-res thumbnail from saved youtube metadata
+                thumb_url = first_video.yt_metadata.get("thumbnails", {}).get("high", {}).get("url")
+                if not thumb_url:
+                    thumb_url = f"https://img.youtube.com/vi/{first_video.yt_video_id}/hqdefault.jpg"
+                p_dict["thumbnail_url"] = thumb_url
+            except Exception:
+                p_dict["thumbnail_url"] = f"https://img.youtube.com/vi/{first_video.yt_video_id}/hqdefault.jpg"
+        else:
+            p_dict["thumbnail_url"] = None
+            
         result.append(p_dict)
     return result
 
