@@ -1,1 +1,355 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ═══════════════════════════════════════════════
+   DESIGN SYSTEM — Clean Professional
+   ═══════════════════════════════════════════════ */
+
+@theme {
+  --font-sans: "Space Grotesk", system-ui, -apple-system, sans-serif;
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
+  }
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
+  }
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these base styles back for old versions of Tailwind.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}
+
+  .glass-card {
+    @apply bg-background/80 backdrop-blur-xl border border-white/20 shadow-lg relative overflow-hidden;
+  }
+  .glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+@layer base {
+  :root {
+    --background: 220 50% 99%; /* #fbfcfe Wash Me */
+    --foreground: 240 22% 21%; /* #292940 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 22% 21%; /* #292940 */
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 22% 21%; /* #292940 */
+
+    --primary: 216 99% 54%; /* #1572fe Hadfield Blue */
+    --primary-foreground: 220 50% 99%; /* #fbfcfe */
+
+    --secondary: 272 75% 74%; /* #c08cee Luminous Lavender */
+    --secondary-foreground: 240 22% 21%; /* #292940 */
+
+    --muted: 220 24% 91%; /* #e2e6ee Ghostly Tuna */
+    --muted-foreground: 240 10% 40%;
+
+    --accent: 33 81% 65%; /* #eeac5c Shiny Trumpet */
+    --accent-foreground: 240 22% 21%; /* #292940 */
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 24% 91%; /* #e2e6ee Ghostly Tuna */
+    --input: 220 24% 91%; /* #e2e6ee Ghostly Tuna */
+    --ring: 216 99% 54%; /* #1572fe Hadfield Blue */
+
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 240 22% 21%; /* #292940 */
+    --foreground: 220 50% 99%; /* #fbfcfe Wash Me */
+
+    --card: 240 22% 16%; 
+    --card-foreground: 220 50% 99%; /* #fbfcfe Wash Me */
+
+    --popover: 240 22% 16%;
+    --popover-foreground: 220 50% 99%; /* #fbfcfe Wash Me */
+
+    --primary: 216 99% 54%; /* #1572fe Hadfield Blue */
+    --primary-foreground: 220 50% 99%; /* #fbfcfe Wash Me */
+
+    --secondary: 272 75% 74%; /* #c08cee Luminous Lavender */
+    --secondary-foreground: 240 22% 21%; /* #292940 */
+
+    --muted: 240 22% 28%; 
+    --muted-foreground: 220 24% 91%; /* #e2e6ee Ghostly Tuna */
+
+    --accent: 33 81% 65%; /* #eeac5c Shiny Trumpet */
+    --accent-foreground: 240 22% 21%; /* #292940 */
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 220 50% 99%;
+
+    --border: 240 22% 30%;
+    --input: 240 22% 30%;
+    --ring: 216 99% 54%; /* #1572fe Hadfield Blue */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+    letter-spacing: -0.025em;
+  }
+  ::selection {
+    background: hsl(var(--primary) / 0.15);
+    color: hsl(var(--foreground));
+  }
+}
+
+/* ═══════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════ */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.15);
+  border-radius: 100px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.3);
+}
+
+/* ANIMATED BACKGROUND STYLES */
+.gradient-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.gradient-sphere {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+}
+
+.sphere-1 {
+  width: 40vw;
+  height: 40vw;
+  background: linear-gradient(40deg, rgba(255, 0, 128, 0.8), rgba(255, 102, 0, 0.4));
+  top: -10%;
+  left: -10%;
+  animation: float-1 15s ease-in-out infinite alternate;
+}
+
+.sphere-2 {
+  width: 45vw;
+  height: 45vw;
+  background: linear-gradient(240deg, rgba(72, 0, 255, 0.8), rgba(0, 183, 255, 0.4));
+  bottom: -20%;
+  right: -10%;
+  animation: float-2 18s ease-in-out infinite alternate;
+}
+
+.sphere-3 {
+  width: 30vw;
+  height: 30vw;
+  background: linear-gradient(120deg, rgba(133, 89, 255, 0.5), rgba(98, 216, 249, 0.3));
+  top: 60%;
+  left: 20%;
+  animation: float-3 20s ease-in-out infinite alternate;
+}
+
+.noise-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.05;
+  z-index: 5;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+@keyframes float-1 {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(10%, 10%) scale(1.1); }
+}
+@keyframes float-2 {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-10%, -5%) scale(1.15); }
+}
+@keyframes float-3 {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+  100% { transform: translate(-5%, 10%) scale(1.05); opacity: 0.6; }
+}
+
+.grid-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: 40px 40px;
+  background-image: 
+      linear-gradient(to right, hsl(var(--foreground) / 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--foreground) / 0.05) 1px, transparent 1px);
+  z-index: 2;
+}
+
+.glow {
+  position: absolute;
+  width: 40vw;
+  height: 40vh;
+  background: radial-gradient(circle, rgba(72, 0, 255, 0.15), transparent 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  animation: pulse 8s infinite alternate;
+  filter: blur(30px);
+}
+
+@keyframes pulse {
+  0% { opacity: 0.3; transform: translate(-50%, -50%) scale(0.9); }
+  100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.particles-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* WAVY ANIMATION */
+.hero-wave-wrapper {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 150px;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+.hero-wave {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+.hero-wave span {
+  content: "";
+  position: absolute;
+  width: 250vw;
+  height: 250vw;
+  bottom: 0;
+  left: 50%;
+  transform: translate(-50%, 95%);
+}
+.hero-wave span:nth-child(1) {
+  border-radius: 45%;
+  background: hsl(var(--background));
+  animation: wave-rotate 15s linear infinite;
+  box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
+}
+.hero-wave span:nth-child(2) {
+  border-radius: 40%;
+  background: hsl(var(--background) / 0.5);
+  animation: wave-rotate 20s linear infinite;
+}
+.hero-wave span:nth-child(3) {
+  border-radius: 42.5%;
+  background: hsl(var(--background) / 0.2);
+  animation: wave-rotate 25s linear infinite;
+}
+@keyframes wave-rotate {
+  0% { transform: translate(-50%, 95%) rotate(0deg); }
+  100% { transform: translate(-50%, 95%) rotate(360deg); }
+}

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 
+import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
 import CoursePlayer from "./pages/CoursePlayer";
 import Login from "./pages/Login";
@@ -12,6 +13,13 @@ function App() {
 
   return (
     <Routes>
+      {/* Public Landing Page */}
+      <Route
+        path="/"
+        element={<Landing />}
+      />
+
+      {/* Auth Pages */}
       <Route
         path="/login"
         element={
@@ -26,6 +34,7 @@ function App() {
         }
       />
 
+      {/* Protected Pages */}
       <Route
         path="/dashboard"
         element={
@@ -48,12 +57,13 @@ function App() {
         }
       />
 
+      {/* Catch-all */}
       <Route
         path="*"
-        element={<Navigate to="/dashboard" replace />}
+        element={<Navigate to="/" replace />}
       />
     </Routes>
   );
 }
 
-export default App;
+export default App;

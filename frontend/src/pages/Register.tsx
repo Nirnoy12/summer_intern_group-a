@@ -6,6 +6,7 @@ import API from "@/services/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 import {
   Eye,
@@ -13,10 +14,10 @@ import {
   Loader2,
   Mail,
   Lock,
-  BookOpen,
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
+import { AnimatedBackground } from "@/components/AnimatedBackground";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -62,187 +63,107 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-indigo-100 flex">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <AnimatedBackground />
 
-      {/* Left Section */}
-
-      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex-col justify-center px-16">
-
-        <BookOpen className="w-16 h-16 mb-8" />
-
-        <h1 className="text-5xl font-extrabold mb-6">
-          Welcome to Gamified LMS
-        </h1>
-
-        <p className="text-xl leading-9 text-blue-100">
-          Learn smarter.
-          <br />
-          Complete lessons.
-          <br />
-          Earn XP & Badges.
-          <br />
-          Maintain your streak.
-        </p>
-
-        <div className="mt-16 space-y-5 text-lg">
-          <p>🎯 Personalized Learning</p>
-          <p>🏆 Earn XP & Unlock Levels</p>
-          <p>🔥 Maintain Daily Streaks</p>
-          <p>📺 Interactive Video Lessons</p>
-        </div>
-
+      {/* Top right theme toggle */}
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle />
       </div>
 
-      {/* Right Section */}
+      <Card className="w-full max-w-md mx-4 glass-card relative z-10 border border-border">
+        <CardContent className="p-8">
+          <h2 className="text-2xl font-semibold text-center text-foreground">
+            Create account
+          </h2>
 
-      <div className="flex flex-1 items-center justify-center p-6">
+          <p className="text-center text-sm text-muted-foreground mt-2 mb-8">
+            Start your learning journey
+          </p>
 
-        <Card className="w-full max-w-md rounded-3xl shadow-2xl border-0">
+          <form onSubmit={handleRegister} className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10 h-10"
+                  required
+                />
+              </div>
+            </div>
 
-          <CardContent className="p-10">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create a password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 pr-10 h-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
 
-            <h2 className="text-4xl font-bold text-center">
-              Create Account
-            </h2>
+            {success && (
+              <div className="flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 p-3 text-sm text-green-600 dark:text-green-400">
+                <CheckCircle size={16} />
+                <span>{success}</span>
+              </div>
+            )}
 
-            <p className="text-center text-gray-500 mt-2 mb-8">
-              Join the Gamified LMS today
-            </p>
+            {error && (
+              <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                <AlertCircle size={16} />
+                <span>{error}</span>
+              </div>
+            )}
 
-            <form
-              onSubmit={handleRegister}
-              className="space-y-5"
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-10"
             >
-
-              {/* Email */}
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Email
-                </label>
-
-                <div className="relative">
-
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-
-                  <Input
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 h-12 rounded-xl"
-                    required
-                  />
-
-                </div>
-              </div>
-
-              {/* Password */}
-
-              <div className="space-y-2">
-
-                <label className="text-sm font-medium">
-                  Password
-                </label>
-
-                <div className="relative">
-
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-
-                  <Input
-                    type={
-                      showPassword
-                        ? "text"
-                        : "password"
-                    }
-                    placeholder="Create a password"
-                    value={password}
-                    onChange={(e) =>
-                      setPassword(e.target.value)
-                    }
-                    className="pl-10 pr-12 h-12 rounded-xl"
-                    required
-                  />
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowPassword(
-                        !showPassword
-                      )
-                    }
-                    className="absolute right-3 top-3 text-gray-500 hover:text-black"
-                  >
-
-                    {showPassword ? (
-                      <EyeOff size={20} />
-                    ) : (
-                      <Eye size={20} />
-                    )}
-
-                  </button>
-
-                </div>
-
-              </div>
-
-              {/* Success Message */}
-
-              {success && (
-                <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-green-700">
-                  <CheckCircle size={18} />
-                  <span>{success}</span>
-                </div>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account…
+                </>
+              ) : (
+                "Create account"
               )}
+            </Button>
+          </form>
 
-              {/* Error Message */}
-
-              {error && (
-                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-red-700">
-                  <AlertCircle size={18} />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full h-12 rounded-xl text-lg"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Creating Account...
-                  </>
-                ) : (
-                  "Create Account"
-                )}
-              </Button>
-
-            </form>
-
-            <div className="mt-8 text-center text-sm text-gray-600">
-              Already have an account?{" "}
-              <Link
-                to="/login"
-                className="font-semibold text-blue-600 hover:text-blue-700"
-              >
-                Login
-              </Link>
-            </div>
-
-            <div className="mt-8 border-t pt-6 text-center">
-              <p className="text-xs text-gray-400">
-                © 2026 Gamified LMS. Learn • Earn XP • Grow
-              </p>
-            </div>
-
-          </CardContent>
-
-        </Card>
-
-      </div>
-
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              Log in
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
