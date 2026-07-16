@@ -12,6 +12,10 @@ interface UseYouTubePlayerReturn {
   play: () => void;
   pause: () => void;
   loadVideo: (videoId: string) => void;
+
+  getCurrentTime: () => number;
+  getDuration: () => number;
+  seekTo: (seconds: number) => void;
 }
 
 // Track whether the API script is loading/loaded globally
@@ -136,5 +140,36 @@ export function useYouTubePlayer({
     [isReady]
   );
 
-  return { isReady, play, pause, loadVideo };
+  const getCurrentTime = useCallback(() => {
+    if (playerRef.current && isReady) {
+      return playerRef.current.getCurrentTime();
+    }
+    return 0;
+  }, [isReady]);
+
+  const getDuration = useCallback(() => {
+    if (playerRef.current && isReady) {
+      return playerRef.current.getDuration();
+    }
+    return 0;
+  }, [isReady]);
+
+  const seekTo = useCallback(
+    (seconds: number) => {
+      if (playerRef.current && isReady) {
+        playerRef.current.seekTo(seconds, true);
+      }
+    },
+    [isReady]
+  );
+
+  return {
+  isReady,
+  play,
+  pause,
+  loadVideo,
+  getCurrentTime,
+  getDuration,
+  seekTo,
+};
 }

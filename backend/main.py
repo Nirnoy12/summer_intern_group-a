@@ -117,62 +117,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = D
     access_token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.post("/api/progress/complete-video/{video_id}")
-def complete_video(
-    video_id: UUID, 
-    current_user: User = Depends(get_current_user), 
-    session: Session = Depends(get_session)
-):
-    video = session.get(Video, video_id)
-    if not video:
-        raise HTTPException(status_code=404, detail="Video not found")
 
-    statement = select(UserProgress).where(
-        UserProgress.user_id == current_user.id,
-        UserProgress.video_id == video_id
-    )
-    progress = session.exec(statement).first()
-
-    if progress and progress.is_completed:
-        return {
-            "message": "Video already completed", 
-            "total_xp": current_user.total_xp,
-            "current_level": current_user.current_level,
-            "leveled_up": False
-        }
-
-    if not progress:
-        progress = UserProgress(user_id=current_user.id, video_id=video_id)
-    
-    progress.is_completed = True
-    progress.completed_at = datetime.utcnow()
-    session.add(progress)
-
-    xp_awarded = video.xp_reward
-    current_user.total_xp += xp_awarded
-    
-    new_level = (current_user.total_xp // 500) + 1
-    
-    leveled_up = new_level > current_user.current_level
-    current_user.current_level = new_level
-    session.add(current_user)
-
-    xp_log = XpLog(
-        user_id=current_user.id,
-        xp_amount=xp_awarded,
-        source_type="video_completion"
-    )
-    session.add(xp_log)
-
-    session.commit()
-
-    return {
-        "message": "Video completed successfully!",
-        "xp_awarded": xp_awarded,
-        "total_xp": current_user.total_xp,
-        "current_level": current_user.current_level,
-        "leveled_up": leveled_up
-    }
 
 @app.get('/')
 def read_root():
@@ -301,16 +246,128 @@ def get_playlist_videos(
 ):
     videos = session.exec(select(Video).where(Video.playlist_id == playlist_id).order_by(Video.sequence_order)).all()
     progress_records = session.exec(select(UserProgress).where(UserProgress.user_id == current_user.id)).all()
-    completed_video_ids = {p.video_id for p in progress_records if p.is_completed}
+    progress_lookup = {
+        p.video_id: p
+        for p in progress_records
+    }
     
     result = []
     for v in videos:
         v_dict = v.model_dump()
-        v_dict["is_completed"] = v.id in completed_video_ids
+
+        progress = progress_lookup.get(v.id)
+
+        if progress:
+            v_dict["is_completed"] = progress.is_completed
+            v_dict["highest_watched_second"] = progress.highest_watched_second
+            v_dict["last_watched_second"] = progress.last_watched_second
+        else:
+            v_dict["is_completed"] = False
+            v_dict["highest_watched_second"] = 0
+            v_dict["last_watched_second"] = 0
+
         result.append(v_dict)
+
     return result
 
 @app.get("/api/users/me")
 def get_user_me(current_user: User = Depends(get_current_user)):
     return current_user.model_dump()
-
+
+
+
+
+class VideoProgressRequest(BaseModel):
+    video_id: UUID
+    current_time: float
+    duration: float
+
+
+@app.post("/api/progress/update")
+def update_video_progress(
+    request: VideoProgressRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    BUFFER = 15.0  # seconds of tolerance
+
+    # Check if video exists
+    video = session.get(Video, request.video_id)
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+
+    # Get or create progress record
+    progress = session.exec(
+        select(UserProgress).where(
+            UserProgress.user_id == current_user.id,
+            UserProgress.video_id == request.video_id
+        )
+    ).first()
+
+    if not progress:
+        progress = UserProgress(
+            user_id=current_user.id,
+            video_id=request.video_id,
+            highest_watched_second=0,
+            last_watched_second=0,
+            is_completed=False
+        )
+
+    # Prevent skipping ahead
+    if request.current_time > progress.highest_watched_second + BUFFER:
+        print(request.current_time,progress.highest_watched_second+BUFFER);
+        return {
+            "allowed": False,
+            "seek_to": progress.highest_watched_second,
+            "completed": progress.is_completed
+        }
+
+    # Update watch progress
+    progress.last_watched_second = request.current_time
+
+    if request.current_time > progress.highest_watched_second:
+        progress.highest_watched_second = request.current_time
+
+    # Completion check
+    xp_awarded = 0
+    leveled_up = False
+
+    if (
+        not progress.is_completed
+        and progress.highest_watched_second >= request.duration - BUFFER
+    ):
+        progress.is_completed = True
+        progress.completed_at = datetime.utcnow()
+
+        # Award XP
+        xp_awarded = video.xp_reward
+        current_user.total_xp += xp_awarded
+
+        new_level = (current_user.total_xp // 500) + 1
+        leveled_up = new_level > current_user.current_level
+        current_user.current_level = new_level
+
+        session.add(current_user)
+
+        xp_log = XpLog(
+            user_id=current_user.id,
+            xp_amount=xp_awarded,
+            source_type="video_completion"
+        )
+        session.add(xp_log)
+
+    session.add(progress)
+    session.commit()
+
+    return {
+        "allowed": True,
+        "highest_watched_second": progress.highest_watched_second,
+        "last_watched_second": progress.last_watched_second,
+        "completed": progress.is_completed,
+        "xp_awarded": xp_awarded,
+        "total_xp": current_user.total_xp,
+        "current_level": current_user.current_level,
+        "leveled_up": leveled_up
+    }
+
+    

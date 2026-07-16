@@ -43,6 +43,9 @@ class UserProgress(SQLModel, table=True):
 
     user_id: uuid.UUID = Field(primary_key=True, foreign_key="users.id")
     video_id: uuid.UUID = Field(primary_key=True, foreign_key="videos.id")
+    highest_watched_second: float = Field(default=0)
+    last_watched_second: float = Field(default=0)
+    last_updated: datetime = Field(default_factory=datetime.utcnow)
     is_completed: bool = Field(default=False)
     completed_at: Optional[datetime] = None
 

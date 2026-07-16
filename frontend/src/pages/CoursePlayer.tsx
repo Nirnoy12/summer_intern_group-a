@@ -22,17 +22,27 @@ export default function CoursePlayer() {
   const [videos, setVideos] = useState<any[]>([]);
   const [activeVideo, setActiveVideo] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [completing, setCompleting] = useState(false);
-
+  const [isPlaying, setIsPlaying] = useState(false);
   // Proctoring permission state
   const [webcamGranted, setWebcamGranted] = useState(false);
   const [proctoringEnabled, setProctoringEnabled] = useState(false);
 
   // YouTube Player
-  const { isReady: playerReady, play, pause, loadVideo } = useYouTubePlayer({
-    containerId: YT_PLAYER_ID,
-    videoId: activeVideo?.yt_video_id || "",
-  });
+  const {
+  isReady: playerReady,
+  play,
+  pause,
+  loadVideo,
+  getCurrentTime,
+  getDuration,
+  seekTo,
+} = useYouTubePlayer({
+  containerId: YT_PLAYER_ID,
+  videoId: activeVideo?.yt_video_id || "",
+  onStateChange: (state) => {
+    setIsPlaying(state === YT.PlayerState.PLAYING);
+  },
+});
 
   // Proctoring callbacks
   const handleAttentionLost = useCallback(() => {
@@ -88,30 +98,90 @@ export default function CoursePlayer() {
   useEffect(() => {
     if (activeVideo && playerReady) {
       loadVideo(activeVideo.yt_video_id);
+      setTimeout(() => {
+        if (activeVideo.last_watched_second > 0) {
+          seekTo(activeVideo.last_watched_second);
+        }
+      }, 500);
     }
-  }, [activeVideo?.id]);
+  }, [activeVideo?.id, playerReady, loadVideo, seekTo]);
 
-  const handleMarkComplete = async () => {
-    if (!activeVideo) return;
-    setCompleting(true);
+
+
+  useEffect(() => {
+  if (!playerReady || !activeVideo) return;
+
+  const interval = setInterval(async () => {
     try {
-      await API.post(
-        `/api/progress/complete-video/${activeVideo.id}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
+      if (!isPlaying) {
+        return;
+      }
+      const currentTime = getCurrentTime();
+      const duration = getDuration();
+
+      if (duration <= 0) {
+        return;
+      }
+      const res = await API.post(
+        "/api/progress/update",
+        {
+          video_id: activeVideo.id,
+          current_time: currentTime,
+          duration: duration,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
-      setVideos(
-        videos.map((v) =>
-          v.id === activeVideo.id ? { ...v, is_completed: true } : v
+
+      const data = res.data;
+
+      if (!data.allowed) {
+        seekTo(data.seek_to);
+        return;
+      }
+
+      setVideos((prev) =>
+        prev.map((video) =>
+          video.id === activeVideo.id
+            ? {
+                ...video,
+                is_completed: data.completed,
+                highest_watched_second: data.highest_watched_second,
+                last_watched_second: data.last_watched_second,
+              }
+            : video
         )
       );
-      setActiveVideo({ ...activeVideo, is_completed: true });
+
+      setActiveVideo((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              is_completed: data.completed,
+              highest_watched_second: data.highest_watched_second,
+              last_watched_second: data.last_watched_second,
+            }
+          : prev
+      );
     } catch (err) {
-      console.error("Failed to mark video as complete", err);
-    } finally {
-      setCompleting(false);
+      console.error(err);
     }
-  };
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [
+  playerReady,
+  activeVideo,
+  token,
+  getCurrentTime,
+  getDuration,
+  seekTo,
+  isPlaying
+]);
+
 
   if (loading) {
     return (
@@ -212,29 +282,7 @@ export default function CoursePlayer() {
                 <h2 className="text-xl font-semibold">{activeVideo.title}</h2>
                 <Badge variant="secondary">+{activeVideo.xp_reward} XP</Badge>
               </div>
-              <Button
-                onClick={handleMarkComplete}
-                disabled={activeVideo.is_completed || completing}
-                variant={activeVideo.is_completed ? "outline" : "default"}
-                className={
-                  activeVideo.is_completed
-                    ? "border-green-600/30 bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/15 active:scale-95 transition-transform"
-                    : "active:scale-95 transition-transform"
-                }
-              >
-                {completing ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle
-                    className={`mr-2 h-4 w-4 ${
-                      activeVideo.is_completed
-                        ? "text-green-600 dark:text-green-400"
-                        : ""
-                    }`}
-                  />
-                )}
-                {activeVideo.is_completed ? "Completed" : "Mark as Complete"}
-              </Button>
+              
             </div>
           </div>
 
