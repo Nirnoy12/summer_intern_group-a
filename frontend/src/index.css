@@ -353,3 +353,193 @@
   0% { transform: translate(-50%, 95%) rotate(0deg); }
   100% { transform: translate(-50%, 95%) rotate(360deg); }
 }
+
+/* ═══════════════════════════════════
+   PROCTORING — Webcam Permission Gate
+   ═══════════════════════════════════ */
+.webcam-gate {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--background) / 0.95);
+  backdrop-filter: blur(12px);
+}
+
+.webcam-gate-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 420px;
+  padding: 2.5rem 2rem;
+  gap: 1rem;
+}
+
+.webcam-gate-icon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, hsl(216 99% 54% / 0.15), hsl(272 75% 74% / 0.15));
+  color: hsl(var(--primary));
+  margin-bottom: 0.5rem;
+}
+
+.webcam-gate-icon.error {
+  background: linear-gradient(135deg, hsl(0 84% 60% / 0.15), hsl(0 63% 31% / 0.15));
+  color: hsl(var(--destructive));
+}
+
+.webcam-gate-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  letter-spacing: -0.025em;
+}
+
+.webcam-gate-description {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: hsl(var(--muted-foreground));
+  max-width: 360px;
+}
+
+.webcam-gate-button {
+  margin-top: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  font-weight: 600;
+}
+
+.webcam-gate-privacy {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground) / 0.7);
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+}
+
+/* ═══════════════════════════════════
+   PROCTORING — Attention Overlay
+   ═══════════════════════════════════ */
+.attention-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(var(--background) / 0.8);
+  backdrop-filter: blur(16px);
+  border-radius: inherit;
+}
+
+.attention-overlay-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2.5rem 2rem;
+  border-radius: 1rem;
+  background: hsl(var(--card) / 0.6);
+  border: 1px solid hsl(0 84% 60% / 0.3);
+  box-shadow:
+    0 0 40px hsl(0 84% 60% / 0.08),
+    0 0 0 1px hsl(0 84% 60% / 0.1);
+  position: relative;
+  overflow: hidden;
+  animation: attention-border-pulse 2s ease-in-out infinite;
+}
+
+@keyframes attention-border-pulse {
+  0%, 100% { border-color: hsl(0 84% 60% / 0.3); box-shadow: 0 0 40px hsl(0 84% 60% / 0.08); }
+  50% { border-color: hsl(0 84% 60% / 0.6); box-shadow: 0 0 60px hsl(0 84% 60% / 0.15); }
+}
+
+.attention-overlay-icon {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: hsl(0 84% 60% / 0.12);
+  color: hsl(0 84% 60%);
+  margin-bottom: 1rem;
+}
+
+.dark .attention-overlay-icon {
+  color: hsl(0 84% 70%);
+}
+
+.attention-overlay-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(0 84% 60%);
+  letter-spacing: -0.025em;
+  margin-bottom: 0.5rem;
+}
+
+.dark .attention-overlay-title {
+  color: hsl(0 84% 70%);
+}
+
+.attention-overlay-description {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+.attention-scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, hsl(0 84% 60% / 0.6), transparent);
+  animation: scan-line 2.5s ease-in-out infinite;
+}
+
+@keyframes scan-line {
+  0% { top: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* ═══════════════════════════════════
+   PROCTORING — Tracking Indicator Dot
+   ═══════════════════════════════════ */
+.tracking-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: hsl(var(--muted-foreground) / 0.3);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+}
+
+.tracking-indicator--green {
+  background: hsl(142 76% 46%);
+  box-shadow: 0 0 8px hsl(142 76% 46% / 0.5);
+  animation: indicator-pulse 2s ease-in-out infinite;
+}
+
+.tracking-indicator--amber {
+  background: hsl(38 92% 50%);
+  box-shadow: 0 0 8px hsl(38 92% 50% / 0.5);
+  animation: indicator-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes indicator-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
