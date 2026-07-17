@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { CheckCircle, PlayCircle, ArrowLeft, Loader2 } from "lucide-react";
+import { CheckCircle, PlayCircle, ArrowLeft, Loader2, Lock } from "lucide-react";
 import API from "@/services/auth";
 import { useAuth } from "@/context/AuthContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -27,22 +27,25 @@ export default function CoursePlayer() {
   const [webcamGranted, setWebcamGranted] = useState(false);
   const [proctoringEnabled, setProctoringEnabled] = useState(false);
 
+  // Ref to guard against overlapping progress API calls
+  const isSendingRef = useRef(false);
+
   // YouTube Player
   const {
-  isReady: playerReady,
-  play,
-  pause,
-  loadVideo,
-  getCurrentTime,
-  getDuration,
-  seekTo,
-} = useYouTubePlayer({
-  containerId: YT_PLAYER_ID,
-  videoId: activeVideo?.yt_video_id || "",
-  onStateChange: (state) => {
-    setIsPlaying(state === YT.PlayerState.PLAYING);
-  },
-});
+    isReady: playerReady,
+    play,
+    pause,
+    loadVideo,
+    getCurrentTime,
+    getDuration,
+    seekTo,
+  } = useYouTubePlayer({
+    containerId: YT_PLAYER_ID,
+    videoId: activeVideo?.yt_video_id || "",
+    onStateChange: (state) => {
+      setIsPlaying(state === YT.PlayerState.PLAYING);
+    },
+  });
 
   // Proctoring callbacks
   const handleAttentionLost = useCallback(() => {
@@ -83,7 +86,11 @@ export default function CoursePlayer() {
         const data = res.data;
         setVideos(data);
         if (data.length > 0) {
-          setActiveVideo(data[0]);
+          // Select the first unlocked, incomplete video (or first video as fallback)
+          const firstPlayable = data.find(
+            (v: any) => !v.is_locked && !v.is_completed
+          ) || data[0];
+          setActiveVideo(firstPlayable);
         }
       } catch (err) {
         console.error("Failed to fetch videos", err);
@@ -95,92 +102,153 @@ export default function CoursePlayer() {
   }, [id, token]);
 
   // When active video changes, load the new video into the player
+  const pendingSeekRef = useRef<number | null>(null);
+
   useEffect(() => {
     if (activeVideo && playerReady) {
+      // Store the seek position so the onStateChange handler can seek after loading
+      if (activeVideo.last_watched_second > 0) {
+        pendingSeekRef.current = activeVideo.last_watched_second;
+      } else {
+        pendingSeekRef.current = null;
+      }
       loadVideo(activeVideo.yt_video_id);
-      setTimeout(() => {
-        if (activeVideo.last_watched_second > 0) {
-          seekTo(activeVideo.last_watched_second);
-        }
-      }, 500);
     }
-  }, [activeVideo?.id, playerReady, loadVideo, seekTo]);
+  }, [activeVideo?.id, playerReady, loadVideo]);
 
+  // Seek to saved position once the player starts buffering/playing the new video
+  useEffect(() => {
+    if (isPlaying && pendingSeekRef.current !== null) {
+      seekTo(pendingSeekRef.current);
+      pendingSeekRef.current = null;
+    }
+  }, [isPlaying, seekTo]);
 
+  // Strict Frontend Anti-Skip
+  const maxWatchedRef = useRef(0);
 
   useEffect(() => {
-  if (!playerReady || !activeVideo) return;
+    if (activeVideo) {
+      maxWatchedRef.current = activeVideo.highest_watched_second || 0;
+    }
+  }, [activeVideo?.id]);
 
-  const interval = setInterval(async () => {
-    try {
-      if (!isPlaying) {
-        return;
+  useEffect(() => {
+    if (!playerReady || !isPlaying) return;
+
+    const skipInterval = setInterval(() => {
+      const current = getCurrentTime();
+      // If user skipped ahead more than 2.5 seconds from what they watched, bounce them back
+      if (current > maxWatchedRef.current + 2.5) {
+        seekTo(maxWatchedRef.current);
+      } else {
+        maxWatchedRef.current = Math.max(maxWatchedRef.current, current);
       }
+    }, 1000);
+
+    return () => clearInterval(skipInterval);
+  }, [playerReady, isPlaying, getCurrentTime, seekTo]);
+
+  // Progress polling — every 5s to reduce server load, with overlap guard
+  useEffect(() => {
+    if (!playerReady || !activeVideo) return;
+
+    const interval = setInterval(async () => {
+      // Skip if not playing, or if a previous request is still in-flight
+      if (!isPlaying || isSendingRef.current) return;
+
       const currentTime = getCurrentTime();
       const duration = getDuration();
+      if (duration <= 0) return;
 
-      if (duration <= 0) {
-        return;
-      }
-      const res = await API.post(
-        "/api/progress/update",
-        {
-          video_id: activeVideo.id,
-          current_time: currentTime,
-          duration: duration,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
+      isSendingRef.current = true;
+      try {
+        const res = await API.post(
+          "/api/progress/update",
+          {
+            video_id: activeVideo.id,
+            current_time: currentTime,
+            duration: duration,
           },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const data = res.data;
+
+        if (!data.allowed) {
+          seekTo(data.seek_to);
+          return;
         }
-      );
 
-      const data = res.data;
+        // Update video list with latest progress
+        setVideos((prev) => {
+          const updated = prev.map((video) =>
+            video.id === activeVideo.id
+              ? {
+                  ...video,
+                  is_completed: data.completed,
+                  highest_watched_second: data.highest_watched_second,
+                  last_watched_second: data.last_watched_second,
+                }
+              : video
+          );
 
-      if (!data.allowed) {
-        seekTo(data.seek_to);
-        return;
-      }
+          // Recalculate is_locked for all videos after progress update
+          let prevCompleted = true;
+          return updated.map((video) => {
+            const isLocked = !prevCompleted;
+            prevCompleted = video.is_completed;
+            return { ...video, is_locked: isLocked };
+          });
+        });
 
-      setVideos((prev) =>
-        prev.map((video) =>
-          video.id === activeVideo.id
+        setActiveVideo((prev: any) =>
+          prev
             ? {
-                ...video,
+                ...prev,
                 is_completed: data.completed,
                 highest_watched_second: data.highest_watched_second,
                 last_watched_second: data.last_watched_second,
               }
-            : video
-        )
-      );
+            : prev
+        );
 
-      setActiveVideo((prev: any) =>
-        prev
-          ? {
-              ...prev,
-              is_completed: data.completed,
-              highest_watched_second: data.highest_watched_second,
-              last_watched_second: data.last_watched_second,
+        // Auto-advance: if current video just completed, move to the next one
+        if (data.completed && !activeVideo.is_completed) {
+          setVideos((prev) => {
+            const currentIndex = prev.findIndex((v) => v.id === activeVideo.id);
+            const nextVideo = prev[currentIndex + 1];
+            if (nextVideo && !nextVideo.is_completed) {
+              setActiveVideo({ ...nextVideo, is_locked: false });
             }
-          : prev
-      );
-    } catch (err) {
-      console.error(err);
-    }
-  }, 1000);
+            return prev;
+          });
+        }
+      } catch (err) {
+        console.error("Progress update failed:", err);
+      } finally {
+        isSendingRef.current = false;
+      }
+    }, 5000);
 
-  return () => clearInterval(interval);
-}, [
-  playerReady,
-  activeVideo,
-  token,
-  getCurrentTime,
-  getDuration,
-  seekTo,
-  isPlaying
-]);
+    return () => clearInterval(interval);
+  }, [playerReady, activeVideo, token, getCurrentTime, getDuration, seekTo, isPlaying]);
+
+  // Tab visibility tracker: Enforce active tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        pause();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [pause]);
 
 
   if (loading) {
@@ -267,10 +335,9 @@ export default function CoursePlayer() {
               )}
 
               {/* YouTube Player container */}
-              <div
-                id={YT_PLAYER_ID}
-                className={`w-full h-full ${showGate ? "invisible" : ""}`}
-              />
+              <div className={`w-full h-full ${showGate ? "invisible" : ""}`}>
+                <div id={YT_PLAYER_ID} className="w-full h-full" />
+              </div>
 
               {/* Attention Lost Overlay */}
               <AttentionOverlay visible={proctoring.attentionLost} />
@@ -298,15 +365,22 @@ export default function CoursePlayer() {
               {videos.map((video, index) => (
                 <button
                   key={video.id}
-                  onClick={() => setActiveVideo(video)}
+                  onClick={() => {
+                    if (!video.is_locked) setActiveVideo(video);
+                  }}
+                  disabled={video.is_locked}
                   className={`w-full text-left px-3 py-2.5 rounded-md flex items-start gap-3 transition-colors ${
-                    activeVideo.id === video.id
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                    video.is_locked
+                      ? "opacity-40 cursor-not-allowed"
+                      : activeVideo.id === video.id
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                   }`}
                 >
                   <div className="mt-0.5 shrink-0">
-                    {video.is_completed ? (
+                    {video.is_locked ? (
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    ) : video.is_completed ? (
                       <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                     ) : (
                       <PlayCircle

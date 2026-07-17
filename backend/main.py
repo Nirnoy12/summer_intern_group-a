@@ -251,6 +251,9 @@ def get_playlist_videos(
         for p in progress_records
     }
     
+    # Sequential locking: track whether the previous video was completed
+    prev_completed = True  # First video is always unlocked
+
     result = []
     for v in videos:
         v_dict = v.model_dump()
@@ -265,6 +268,10 @@ def get_playlist_videos(
             v_dict["is_completed"] = False
             v_dict["highest_watched_second"] = 0
             v_dict["last_watched_second"] = 0
+
+        # A video is locked if the previous video in sequence is not completed
+        v_dict["is_locked"] = not prev_completed
+        prev_completed = v_dict["is_completed"]
 
         result.append(v_dict)
 
@@ -289,12 +296,33 @@ def update_video_progress(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
-    BUFFER = 5.0  # seconds of tolerance
+    BUFFER = 15.0  # seconds of tolerance
 
     # Check if video exists
     video = session.get(Video, request.video_id)
     if not video:
         raise HTTPException(status_code=404, detail="Video not found")
+
+    # Sequential locking: verify all prior videos in the playlist are completed
+    prior_videos = session.exec(
+        select(Video).where(
+            Video.playlist_id == video.playlist_id,
+            Video.sequence_order < video.sequence_order
+        ).order_by(Video.sequence_order)
+    ).all()
+
+    for prior in prior_videos:
+        prior_progress = session.exec(
+            select(UserProgress).where(
+                UserProgress.user_id == current_user.id,
+                UserProgress.video_id == prior.id
+            )
+        ).first()
+        if not prior_progress or not prior_progress.is_completed:
+            raise HTTPException(
+                status_code=403,
+                detail="Previous video not completed. Complete videos in order."
+            )
 
     # Get or create progress record
     progress = session.exec(
@@ -315,7 +343,6 @@ def update_video_progress(
 
     # Prevent skipping ahead
     if request.current_time > progress.highest_watched_second + BUFFER:
-        print(request.current_time,progress.highest_watched_second+BUFFER);
         return {
             "allowed": False,
             "seek_to": progress.highest_watched_second,
@@ -324,6 +351,7 @@ def update_video_progress(
 
     # Update watch progress
     progress.last_watched_second = request.current_time
+    progress.last_updated = datetime.utcnow()
 
     if request.current_time > progress.highest_watched_second:
         progress.highest_watched_second = request.current_time
@@ -368,6 +396,4 @@ def update_video_progress(
         "total_xp": current_user.total_xp,
         "current_level": current_user.current_level,
         "leveled_up": leveled_up
-    }
-
-    
+    }

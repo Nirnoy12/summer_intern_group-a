@@ -164,12 +164,12 @@ export function useYouTubePlayer({
   );
 
   return {
-  isReady,
-  play,
-  pause,
-  loadVideo,
-  getCurrentTime,
-  getDuration,
-  seekTo,
-};
+    isReady,
+    play,
+    pause,
+    loadVideo,
+    getCurrentTime,
+    getDuration,
+    seekTo,
+  };
 }
