@@ -296,7 +296,7 @@ def update_video_progress(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
-    BUFFER = 5.0  # seconds of tolerance
+    BUFFER = 15.0  # seconds of tolerance
 
     # Check if video exists
     video = session.get(Video, request.video_id)

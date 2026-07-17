@@ -124,6 +124,30 @@ export default function CoursePlayer() {
     }
   }, [isPlaying, seekTo]);
 
+  // Strict Frontend Anti-Skip
+  const maxWatchedRef = useRef(0);
+
+  useEffect(() => {
+    if (activeVideo) {
+      maxWatchedRef.current = activeVideo.highest_watched_second || 0;
+    }
+  }, [activeVideo?.id]);
+
+  useEffect(() => {
+    if (!playerReady || !isPlaying) return;
+
+    const skipInterval = setInterval(() => {
+      const current = getCurrentTime();
+      // If user skipped ahead more than 2.5 seconds from what they watched, bounce them back
+      if (current > maxWatchedRef.current + 2.5) {
+        seekTo(maxWatchedRef.current);
+      } else {
+        maxWatchedRef.current = Math.max(maxWatchedRef.current, current);
+      }
+    }, 1000);
+
+    return () => clearInterval(skipInterval);
+  }, [playerReady, isPlaying, getCurrentTime, seekTo]);
 
   // Progress polling — every 5s to reduce server load, with overlap guard
   useEffect(() => {
