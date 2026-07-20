@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { Button } from "@/ui/button";
+import { ThemeToggle } from "@/theme/ThemeToggle";
 
 export function Navbar() {
   return (

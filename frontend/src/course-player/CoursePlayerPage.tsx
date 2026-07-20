@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Button } from "@/ui/button";
+import { Badge } from "@/ui/badge";
+import { Card } from "@/ui/card";
 import { CheckCircle, PlayCircle, ArrowLeft, Loader2, Lock } from "lucide-react";
-import API from "@/services/auth";
-import { useAuth } from "@/context/AuthContext";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { AnimatedBackground } from "@/components/AnimatedBackground";
-import { useYouTubePlayer } from "@/hooks/useYouTubePlayer";
-import { useProctoring } from "@/hooks/useProctoring";
-import { WebcamPermissionGate } from "@/components/WebcamPermissionGate";
-import { AttentionOverlay } from "@/components/AttentionOverlay";
+import API from "@/auth/auth";
+import { useAuth } from "@/auth/AuthContext";
+import { ThemeToggle } from "@/theme/ThemeToggle";
+import { AnimatedBackground } from "@/theme/AnimatedBackground";
+import { useYouTubePlayer } from "@/course-player/useYouTubePlayer";
+import { useProctoring } from "@/course-player/useProctoring";
+import { WebcamPermissionGate } from "@/course-player/WebcamPermissionGate";
+import { AttentionOverlay } from "@/course-player/AttentionOverlay";
+import { CameraPip } from "@/course-player/CameraPip";
 
 const YT_PLAYER_ID = "yt-proctored-player";
 
@@ -231,7 +232,7 @@ export default function CoursePlayer() {
       } finally {
         isSendingRef.current = false;
       }
-    }, 5000);
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [playerReady, activeVideo, token, getCurrentTime, getDuration, seekTo, isPlaying]);
@@ -350,6 +351,32 @@ export default function CoursePlayer() {
                 <Badge variant="secondary">+{activeVideo.xp_reward} XP</Badge>
               </div>
               
+              {/* Navigation buttons */}
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline"
+                  disabled={videos.findIndex((v) => v.id === activeVideo.id) === 0}
+                  onClick={() => {
+                    const idx = videos.findIndex((v) => v.id === activeVideo.id);
+                    if (idx > 0) setActiveVideo(videos[idx - 1]);
+                  }}
+                >
+                  Previous
+                </Button>
+                <Button 
+                  variant="default"
+                  disabled={
+                    videos.findIndex((v) => v.id === activeVideo.id) >= videos.length - 1 || 
+                    videos[videos.findIndex((v) => v.id === activeVideo.id) + 1].is_locked
+                  }
+                  onClick={() => {
+                    const idx = videos.findIndex((v) => v.id === activeVideo.id);
+                    if (idx < videos.length - 1) setActiveVideo(videos[idx + 1]);
+                  }}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -405,6 +432,7 @@ export default function CoursePlayer() {
           </Card>
         </div>
       </div>
+      <CameraPip stream={proctoring.stream} />
     </div>
   );
 }

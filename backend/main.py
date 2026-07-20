@@ -1,5 +1,6 @@
 import httpx
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import SQLModel, create_engine, Session, select
 from contextlib import asynccontextmanager
@@ -26,7 +27,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=False, pool_size=20, max_overflow=50)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -44,6 +45,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"message": "An internal server error occurred", "details": str(exc)},
+    )
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
@@ -294,10 +302,59 @@ def get_playlists(
         p_dict["is_completed"] = (
             len(videos) > 0 and completed_videos == len(videos)
         )
+        p_dict["course_progress_percentage"] = (completed_videos / len(videos)) * 100 if videos else 0
+        p_dict["status"] = "Completed" if p_dict["is_completed"] else ("In Progress" if completed_videos > 0 else "Not Started")
+        
+        last_accessed = None
+        if video_ids:
+            latest_progress = session.exec(
+                select(UserProgress).where(
+                    UserProgress.user_id == current_user.id,
+                    UserProgress.video_id.in_(video_ids)
+                ).order_by(UserProgress.last_updated.desc())
+            ).first()
+            if latest_progress:
+                last_accessed = latest_progress.last_updated
+        p_dict["last_accessed_date"] = last_accessed
 
         result.append(p_dict)
 
     return result
+
+@app.delete("/api/playlists/{playlist_id}")
+def delete_playlist(
+    playlist_id: str,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    playlist = session.exec(
+        select(Playlist).where(
+            Playlist.id == playlist_id,
+            Playlist.user_id == current_user.id
+        )
+    ).first()
+
+    if not playlist:
+        raise HTTPException(status_code=404, detail="Playlist not found")
+
+    # Delete all associated videos and progress
+    videos = session.exec(select(Video).where(Video.playlist_id == playlist.id)).all()
+    video_ids = [v.id for v in videos]
+    
+    if video_ids:
+        progress_records = session.exec(
+            select(UserProgress).where(UserProgress.video_id.in_(video_ids))
+        ).all()
+        for p in progress_records:
+            session.delete(p)
+
+    for v in videos:
+        session.delete(v)
+
+    session.delete(playlist)
+    session.commit()
+
+    return {"message": "Playlist removed successfully"}
 
 @app.get("/api/playlists/{playlist_id}/videos")
 def get_playlist_videos(

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import API from "@/services/auth";
+import API from "@/auth/auth";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { Button } from "@/ui/button";
+import { Input } from "@/ui/input";
+import { Card, CardContent } from "@/ui/card";
+import { ThemeToggle } from "@/theme/ThemeToggle";
 
 import {
   Eye,
@@ -17,7 +17,7 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { AnimatedBackground } from "@/theme/AnimatedBackground";
 
 export default function Register() {
   const navigate = useNavigate();

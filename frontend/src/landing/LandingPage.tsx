@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
-import { AnimatedBackground } from "@/components/AnimatedBackground";
+import { Button } from "@/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/ui/card";
+import { Separator } from "@/ui/separator";
+import { Navbar } from "@/landing/Navbar";
+import { Footer } from "@/landing/Footer";
+import { AnimatedBackground } from "@/theme/AnimatedBackground";
 import { ArrowRight, Trophy, Flame, Zap, Search, Rocket } from "lucide-react";
 
 const sectionFade = {

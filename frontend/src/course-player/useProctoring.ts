@@ -8,6 +8,7 @@ export interface ProctoringState {
   isLookingAway: boolean;
   attentionLost: boolean;
   errorMessage?: string;
+  stream: MediaStream | null;
 }
 
 interface UseProctoringOptions {
@@ -71,6 +72,7 @@ export function useProctoring({
     isFaceDetected: false,
     isLookingAway: false,
     attentionLost: false,
+    stream: null,
   });
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -115,6 +117,7 @@ export function useProctoring({
         isFaceDetected: false,
         isLookingAway: false,
         attentionLost: false,
+        stream: null,
       });
       return;
     }
@@ -143,6 +146,7 @@ export function useProctoring({
             errorMessage: isDenied
               ? "Camera permission denied"
               : "Failed to access camera",
+            stream: null,
           });
         }
         return;
@@ -203,7 +207,7 @@ export function useProctoring({
         }
 
         faceLandmarkerRef.current = faceLandmarker;
-        setState((s) => ({ ...s, status: "active" }));
+        setState((s) => ({ ...s, status: "active", stream: streamRef.current }));
 
         // 4. Start detection loop
         function detectLoop() {
@@ -302,6 +306,7 @@ export function useProctoring({
             isLookingAway: false,
             attentionLost: false,
             errorMessage: "Failed to initialize face detection",
+            stream: null,
           });
           console.error("FaceLandmarker init error:", err);
         }
