@@ -55,7 +55,7 @@ export default function Dashboard() {
     try {
       const urlObj = new URL(importUrl);
       playlistId = urlObj.searchParams.get("list") || "";
-    } catch (e) {
+    } catch {
       setImportError("Invalid URL format. Please paste a valid YouTube link.");
       return;
     }
