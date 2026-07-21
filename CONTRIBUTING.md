@@ -75,7 +75,17 @@ The backend requires certain environment variables to function properly. We have
    - **SECRET_KEY**: Generate a random secure key by running `python -c "import secrets; print(secrets.token_hex(32))"` and paste it here.
    - **YOUTUBE_API_KEY**: Get a YouTube Data API v3 key from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 
-### Step 2: Start the Backend (FastAPI)
+### Step 2: Setup Local LLM (Ollama)
+The platform uses Ollama to run the `phi3` language model locally for generating quiz questions from transcripts.
+
+1. Download and install [Ollama](https://ollama.com/download) for your operating system.
+2. Once installed, open your terminal and pull the model:
+   ```bash
+   ollama pull phi3
+   ```
+3. Ensure Ollama is running in the background (default port `11434`).
+
+### Step 3: Start the Backend (FastAPI)
 Open your terminal and navigate to the backend folder:
 ```bash
 cd backend
@@ -101,7 +111,7 @@ uvicorn main:app --reload
 ✅ The backend API is now running at `http://127.0.0.1:8000`
 ✅ Interactive Swagger API Docs available at `http://127.0.0.1:8000/docs`
 
-### Step 3: Start the Frontend (React + Vite)
+### Step 4: Start the Frontend (React + Vite)
 Open a **new, separate terminal** and navigate to the frontend folder:
 ```bash
 cd frontend
