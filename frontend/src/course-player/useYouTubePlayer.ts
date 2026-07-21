@@ -71,7 +71,7 @@ export function useYouTubePlayer({
       if (destroyed) return;
 
       const el = document.getElementById(containerId);
-      if (!el) return;
+      if (!el || !videoId) return;
 
       playerRef.current = new window.YT.Player(containerId, {
         width: "100%",

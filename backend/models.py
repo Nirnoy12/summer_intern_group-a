@@ -80,3 +80,34 @@ class XpLog(SQLModel, table=True):
     xp_amount: int
     source_type: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class Quiz(SQLModel, table=True):
+    __tablename__ = "quizzes"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    playlist_id: uuid.UUID = Field(foreign_key="playlists.id", index=True)
+    sequence_order: int
+    title: str
+    status: str = Field(default="pending") # pending, generating, ready
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class Question(SQLModel, table=True):
+    __tablename__ = "questions"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    quiz_id: uuid.UUID = Field(foreign_key="quizzes.id", index=True)
+    question_text: str
+    options: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
+    correct_option_index: int
+    explanation: Optional[str] = None
+
+class QuizAttempt(SQLModel, table=True):
+    __tablename__ = "quiz_attempts"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    quiz_id: uuid.UUID = Field(foreign_key="quizzes.id", index=True)
+    score: int = Field(default=0)
+    passed: bool = Field(default=False)
+    questions_asked: Dict[str, Any] = Field(default={}, sa_column=Column(JSON)) # List of question IDs asked
+    created_at: datetime = Field(default_factory=datetime.utcnow)

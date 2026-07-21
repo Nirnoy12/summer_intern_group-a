@@ -6,4 +6,5 @@ httpx
 python-dotenv
 passlib[argon2]
 python-jose
-python-multipart
+python-multipartyoutube-transcript-api
+ollama

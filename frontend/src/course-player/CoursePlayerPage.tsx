@@ -3,7 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import { Button } from "@/ui/button";
 import { Badge } from "@/ui/badge";
 import { Card } from "@/ui/card";
-import { CheckCircle, PlayCircle, ArrowLeft, Loader2, Lock } from "lucide-react";
+import { CheckCircle, PlayCircle, ArrowLeft, Loader2, Lock, FileQuestion } from "lucide-react";
+import { QuizView } from "./QuizView";
 import API from "@/auth/auth";
 import { useAuth } from "@/auth/AuthContext";
 import { ThemeToggle } from "@/theme/ThemeToggle";
@@ -106,7 +107,7 @@ export default function CoursePlayer() {
   const pendingSeekRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (activeVideo && playerReady) {
+    if (activeVideo && activeVideo.type !== "quiz" && playerReady) {
       // Store the seek position so the onStateChange handler can seek after loading
       if (activeVideo.last_watched_second > 0) {
         pendingSeekRef.current = activeVideo.last_watched_second;
@@ -152,7 +153,7 @@ export default function CoursePlayer() {
 
   // Progress polling — every 5s to reduce server load, with overlap guard
   useEffect(() => {
-    if (!playerReady || !activeVideo) return;
+    if (!playerReady || !activeVideo || activeVideo.type === "quiz") return;
 
     const interval = setInterval(async () => {
       // Skip if not playing, or if a previous request is still in-flight
@@ -326,29 +327,58 @@ export default function CoursePlayer() {
           <div className="flex-1 flex flex-col gap-4">
             {/* Video player area */}
             <div className="aspect-video w-full bg-black rounded-lg overflow-hidden border border-border relative">
-              {/* Permission Gate */}
-              {showGate && (
-                <WebcamPermissionGate
-                  status={proctoring.status === "idle" ? "idle" : proctoring.status as "requesting" | "denied" | "error"}
-                  errorMessage={proctoring.errorMessage}
-                  onRequestPermission={handleRequestPermission}
+              {activeVideo?.type === "quiz" ? (
+                <QuizView 
+                  quiz={activeVideo} 
+                  onPassed={() => {
+                    // Update the active video status to completed
+                    setVideos((prev) => {
+                      const updated = prev.map((video) =>
+                        video.id === activeVideo.id
+                          ? { ...video, is_completed: true }
+                          : video
+                      );
+                      
+                      let prevCompleted = true;
+                      return updated.map((video) => {
+                        const isLocked = !prevCompleted;
+                        prevCompleted = video.is_completed;
+                        return { ...video, is_locked: isLocked };
+                      });
+                    });
+                    
+                    setActiveVideo((prev: any) => ({...prev, is_completed: true}));
+                  }} 
                 />
+              ) : (
+                <>
+                  {/* Permission Gate */}
+                  {showGate && (
+                    <WebcamPermissionGate
+                      status={proctoring.status === "idle" ? "idle" : proctoring.status as "requesting" | "denied" | "error"}
+                      errorMessage={proctoring.errorMessage}
+                      onRequestPermission={handleRequestPermission}
+                    />
+                  )}
+
+                  {/* YouTube Player container */}
+                  <div className={`w-full h-full ${showGate ? "invisible" : ""}`}>
+                    <div id={YT_PLAYER_ID} className="w-full h-full" />
+                  </div>
+
+                  {/* Attention Lost Overlay */}
+                  <AttentionOverlay visible={proctoring.attentionLost} />
+                </>
               )}
-
-              {/* YouTube Player container */}
-              <div className={`w-full h-full ${showGate ? "invisible" : ""}`}>
-                <div id={YT_PLAYER_ID} className="w-full h-full" />
-              </div>
-
-              {/* Attention Lost Overlay */}
-              <AttentionOverlay visible={proctoring.attentionLost} />
             </div>
 
             {/* Info bar */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 py-4">
               <div className="space-y-2">
                 <h2 className="text-xl font-semibold">{activeVideo.title}</h2>
-                <Badge variant="secondary">+{activeVideo.xp_reward} XP</Badge>
+                {activeVideo.type !== "quiz" && (
+                  <Badge variant="secondary">+{activeVideo.xp_reward} XP</Badge>
+                )}
               </div>
               
               {/* Navigation buttons */}
@@ -409,6 +439,14 @@ export default function CoursePlayer() {
                       <Lock className="h-4 w-4 text-muted-foreground" />
                     ) : video.is_completed ? (
                       <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    ) : video.type === "quiz" ? (
+                      <FileQuestion
+                        className={`h-4 w-4 ${
+                          activeVideo.id === video.id
+                            ? "text-foreground"
+                            : "opacity-50"
+                        }`}
+                      />
                     ) : (
                       <PlayCircle
                         className={`h-4 w-4 ${
