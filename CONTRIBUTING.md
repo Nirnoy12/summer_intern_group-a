@@ -55,14 +55,25 @@ Understanding how data moves through the application is critical for contributin
 
 Follow these exact steps to get the full stack running on your machine.
 
-### Step 1: Database Credentials
-Before starting, ask the Tech Lead for the **CockroachDB Connection String** and the **YouTube API Key**.
-Create a file named `.env` in the `backend/` directory and populate it:
-```env
-DATABASE_URL=cockroachdb://<user>:<password>@<host>:26257/defaultdb?sslmode=verify-full&sslrootcert=system
-SECRET_KEY=your-jwt-secret-key
-YOUTUBE_API_KEY=your-youtube-api-key
-```
+### Step 1: Environment Variables Setup
+The backend requires certain environment variables to function properly. We have provided a template for you.
+
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Copy the template to create your `.env` file:
+   ```bash
+   # Windows
+   copy .env.example .env
+   
+   # Mac/Linux
+   cp .env.example .env
+   ```
+3. Open the newly created `.env` file and fill in the required values:
+   - **DATABASE_URL**: Ask the Tech Lead (Nirnoy) for the CockroachDB Connection String. Ensure the URL starts with `cockroachdb://`.
+   - **SECRET_KEY**: Generate a random secure key by running `python -c "import secrets; print(secrets.token_hex(32))"` and paste it here.
+   - **YOUTUBE_API_KEY**: Get a YouTube Data API v3 key from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 
 ### Step 2: Start the Backend (FastAPI)
 Open your terminal and navigate to the backend folder:
