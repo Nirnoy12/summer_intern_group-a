@@ -1,8 +1,11 @@
 import axios from "axios";
 import { toast } from "react-toastify";
 
+// VITE_API_URL is set at build time via the frontend .env file.
+// For local dev it defaults to localhost. For production builds,
+// set VITE_API_URL=https://your-backend-url in frontend/.env
 const API = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
 });
 
 API.interceptors.response.use(

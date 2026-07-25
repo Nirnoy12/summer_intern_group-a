@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=75.0.0", "wheel>=0.44.0"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "lms-backend"
+version = "1.0.0"
+description = "Gamified LMS Backend — FastAPI + SQLModel + CockroachDB + Ollama"
+requires-python = ">=3.11,<3.13"
+
+dependencies = [
+    # Web framework
+    "fastapi==0.115.12",
+    "uvicorn[standard]==0.34.3",
+
+    # Database ORM  (SQLModel wraps SQLAlchemy 2.x)
+    "sqlmodel==0.0.22",
+    "sqlalchemy==2.0.41",
+
+    # CockroachDB / PostgreSQL driver
+    "psycopg2-binary==2.9.10",
+    "sqlalchemy-cockroachdb==2.0.2",
+
+    # HTTP client (async)
+    "httpx==0.28.1",
+
+    # Environment variables
+    "python-dotenv==1.1.0",
+
+    # Authentication
+    "passlib[argon2]==1.7.4",
+    "argon2-cffi==23.1.0",
+    "python-jose[cryptography]==3.3.0",
+
+    # Form data parsing (required by OAuth2PasswordRequestForm)
+    "python-multipart==0.0.20",
+
+    # YouTube transcript fetching
+    "youtube-transcript-api==1.0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest==8.3.5",
+    "pytest-asyncio==0.25.3",
+    "httpx==0.28.1",           # re-listed for test client
+
+    # Type checking
+    "mypy==1.15.0",
+    "types-passlib==1.7.7.20240819",
+
+    # Linting / formatting
+    "ruff==0.9.10",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+# ─── Ruff linter config ────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]
+
+# ─── Pytest config ─────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

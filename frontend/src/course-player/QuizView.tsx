@@ -14,6 +14,9 @@ export function QuizView({ quiz, onPassed }: { quiz: any; onPassed: () => void }
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<any>(null);
+  
+  const [eta, setEta] = useState<number | null>(null);
+  const [queuePos, setQueuePos] = useState<number | null>(null);
 
   const loadQuiz = async () => {
     setLoading(true);
@@ -27,8 +30,14 @@ export function QuizView({ quiz, onPassed }: { quiz: any; onPassed: () => void }
         setAttemptId(res.data.attempt_id);
         setAnswers({});
         setResult(null);
+        setEta(null);
+        setQueuePos(null);
       } else {
         setError(res.data.message || "Quiz is still generating...");
+        if (res.data.eta_seconds !== undefined) {
+          setEta(res.data.eta_seconds);
+          setQueuePos(res.data.queue_position);
+        }
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to start quiz.");
@@ -40,6 +49,21 @@ export function QuizView({ quiz, onPassed }: { quiz: any; onPassed: () => void }
   useEffect(() => {
     loadQuiz();
   }, [quiz.id, token]);
+
+  useEffect(() => {
+    let interval: any;
+    if (eta !== null && eta > 0) {
+      interval = setInterval(() => {
+        setEta((prev) => {
+          if (prev && prev > 1) return prev - 1;
+          // Refresh quiz status when timer hits 0
+          loadQuiz();
+          return 0;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [eta]);
 
   const handleSelect = (qId: string, index: number) => {
     setAnswers((prev) => ({ ...prev, [qId]: index }));
@@ -78,10 +102,37 @@ export function QuizView({ quiz, onPassed }: { quiz: any; onPassed: () => void }
   }
 
   if (error) {
+    const isGenerating = error.includes("not ready") || error.includes("generating");
+    
     return (
-      <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-4">
-        <p className="text-red-500">{error}</p>
-        <Button onClick={loadQuiz}>Retry</Button>
+      <div className="flex flex-col items-center justify-center h-full p-8 text-center gap-6 bg-card/30 backdrop-blur rounded-xl border border-border shadow-lg">
+        {isGenerating ? (
+          <>
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            <h2 className="text-2xl font-bold text-foreground">AI is Building Your Quiz</h2>
+            {queuePos !== null && queuePos > 0 && (
+              <p className="text-muted-foreground text-lg">
+                There are <span className="font-semibold text-primary">{queuePos}</span> quizzes ahead of this one in the queue.
+              </p>
+            )}
+            {eta !== null && eta > 0 && (
+              <div className="flex flex-col items-center gap-2 bg-background/50 p-6 rounded-2xl border border-border shadow-inner">
+                <p className="text-sm text-muted-foreground uppercase tracking-wider font-semibold">Estimated Time Remaining</p>
+                <div className="text-5xl font-mono font-bold tracking-tighter text-primary drop-shadow-md">
+                  {Math.floor(eta / 60).toString().padStart(2, '0')}:{(eta % 60).toString().padStart(2, '0')}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <XCircle className="h-16 w-16 text-destructive" />
+            <p className="text-red-500 text-lg font-medium">{error}</p>
+          </>
+        )}
+        <Button size="lg" onClick={loadQuiz} className="mt-4 shadow-md transition-all active:scale-95">
+          {isGenerating ? "Check Status Now" : "Retry"}
+        </Button>
       </div>
     );
   }

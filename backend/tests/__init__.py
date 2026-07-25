@@ -1,0 +1,13 @@
+"""
+Backend test suite package initializer.
+Adds the backend/ directory to sys.path so that all imports resolve:
+  - from models import ...
+  - from core.deps import ...
+  - from routers.auth import ...
+  - from llm_service import ...
+"""
+import sys
+import os
+
+# Add backend/ to path (parent of this tests/ folder)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

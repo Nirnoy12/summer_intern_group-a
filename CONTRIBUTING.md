@@ -18,7 +18,8 @@ Our platform is divided into a decoupled Frontend and Backend architecture:
 - **Database ORM**: SQLModel (built on top of SQLAlchemy and Pydantic).
 - **Database Engine**: CockroachDB (Serverless distributed SQL).
 - **Authentication**: JWT (JSON Web Tokens) with Argon2 password hashing.
-- **External Integrations**: `httpx` for async calls to the YouTube Data API v3.
+- **External Integrations**: `httpx` for async calls to the YouTube Data API v3 and the Groq cloud API.
+- **LLM Integration (switchable)**: [Ollama](https://ollama.com/) (local, no internet) OR [Groq](https://console.groq.com) (free cloud API, no GPU needed).
 
 ---
 
@@ -75,15 +76,38 @@ The backend requires certain environment variables to function properly. We have
    - **SECRET_KEY**: Generate a random secure key by running `python -c "import secrets; print(secrets.token_hex(32))"` and paste it here.
    - **YOUTUBE_API_KEY**: Get a YouTube Data API v3 key from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 
-### Step 2: Setup Local LLM (Ollama)
-The platform uses Ollama to run the `phi3` language model locally for generating quiz questions from transcripts.
+### Step 2: Setup the LLM Provider for Quiz Generation
+
+The platform supports **two LLM backends**. Pick whichever suits your machine:
+
+#### Option A: Ollama (Local Model — requires a GPU)
+Runs the model entirely on your machine. No internet needed after the initial pull.
 
 1. Download and install [Ollama](https://ollama.com/download) for your operating system.
-2. Once installed, open your terminal and pull the model:
+2. Pull the recommended model (fits in 4 GB VRAM):
    ```bash
-   ollama pull phi3
+   ollama pull qwen2.5:3b
    ```
 3. Ensure Ollama is running in the background (default port `11434`).
+4. In your `backend/.env`, set:
+   ```env
+   LLM_PROVIDER=ollama
+   OLLAMA_MODEL=qwen2.5:3b
+   ```
+
+#### Option B: Groq (Free Cloud API — no GPU needed) ✅ Recommended for most teammates
+Groq provides free, blazing-fast inference on top open-source models (Llama 3, Gemma 2).
+
+1. Sign up free at [console.groq.com](https://console.groq.com) — **no credit card needed**.
+2. Go to **API Keys → Create API Key** and copy it.
+3. In your `backend/.env`, set:
+   ```env
+   LLM_PROVIDER=groq
+   GROQ_API_KEY=gsk_your_key_here
+   GROQ_MODEL=llama-3.1-8b-instant
+   ```
+
+> **Note:** You only need to configure ONE of the two options. Groq is the easiest path if you don't have a powerful GPU.
 
 ### Step 3: Start the Backend (FastAPI)
 Open your terminal and navigate to the backend folder:

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, date
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Column, JSON
 
@@ -59,6 +59,10 @@ class Video(SQLModel, table=True):
     title: str
     xp_reward: int = Field(default=50)
 
+    # Duration in seconds fetched from YouTube contentDetails API.
+    # 0 = unknown (e.g. live streams, private videos).
+    duration_seconds: int = Field(default=0)
+
     yt_metadata: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
 
 class UserProgress(SQLModel, table=True):
@@ -88,8 +92,22 @@ class Quiz(SQLModel, table=True):
     playlist_id: uuid.UUID = Field(foreign_key="playlists.id", index=True)
     sequence_order: int
     title: str
-    status: str = Field(default="pending") # pending, generating, ready
+    status: str = Field(default="pending")  # pending, generating, ready, error_*
+
+    # How many questions are shown per attempt for this specific quiz.
+    # Set by the smart quiz scheduler based on chapter duration:
+    #   light (< 60 min chapter)    →  8 questions
+    #   standard (1–3 hr chapter)   → 15 questions
+    #   deep (3 hr+ chapter)        → 25 questions
+    questions_per_attempt: int = Field(default=15)
+
+    # YouTube video IDs whose transcripts feed this quiz.
+    # Persisted so the priority-queue worker can regenerate from just the DB
+    # after a server restart — no in-memory state required.
+    video_yt_ids: List[Any] = Field(default=[], sa_column=Column(JSON))
+
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
 
 class Question(SQLModel, table=True):
     __tablename__ = "questions"
