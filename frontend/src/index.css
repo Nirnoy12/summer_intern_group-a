@@ -87,65 +87,65 @@
 
 @layer base {
   :root {
-    --background: 220 50% 99%; /* #fbfcfe Wash Me */
-    --foreground: 240 22% 21%; /* #292940 */
+    --background: 0 0% 98%; /* Clean White-ish */
+    --foreground: 230 25% 10%; /* Deep Text */
 
     --card: 0 0% 100%;
-    --card-foreground: 240 22% 21%; /* #292940 */
+    --card-foreground: 230 25% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 22% 21%; /* #292940 */
+    --popover-foreground: 230 25% 10%;
 
-    --primary: 216 99% 54%; /* #1572fe Hadfield Blue */
-    --primary-foreground: 220 50% 99%; /* #fbfcfe */
+    --primary: 255 85% 65%; /* Vibrant Neon Purple */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 272 75% 74%; /* #c08cee Luminous Lavender */
-    --secondary-foreground: 240 22% 21%; /* #292940 */
+    --secondary: 190 90% 50%; /* Electric Cyan */
+    --secondary-foreground: 230 25% 10%;
 
-    --muted: 220 24% 91%; /* #e2e6ee Ghostly Tuna */
-    --muted-foreground: 240 10% 40%;
+    --muted: 240 5% 96%; 
+    --muted-foreground: 240 4% 46%;
 
-    --accent: 33 81% 65%; /* #eeac5c Shiny Trumpet */
-    --accent-foreground: 240 22% 21%; /* #292940 */
+    --accent: 33 90% 65%; /* Warm Gold */
+    --accent-foreground: 230 25% 10%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 24% 91%; /* #e2e6ee Ghostly Tuna */
-    --input: 220 24% 91%; /* #e2e6ee Ghostly Tuna */
-    --ring: 216 99% 54%; /* #1572fe Hadfield Blue */
+    --border: 240 6% 90%; 
+    --input: 240 6% 90%; 
+    --ring: 255 85% 65%; 
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 240 22% 21%; /* #292940 */
-    --foreground: 220 50% 99%; /* #fbfcfe Wash Me */
+    --background: 230 25% 7%; /* Ultra Deep Obsidian */
+    --foreground: 0 0% 98%; /* Crisp White */
 
-    --card: 240 22% 16%; 
-    --card-foreground: 220 50% 99%; /* #fbfcfe Wash Me */
+    --card: 230 25% 12%; 
+    --card-foreground: 0 0% 98%;
 
-    --popover: 240 22% 16%;
-    --popover-foreground: 220 50% 99%; /* #fbfcfe Wash Me */
+    --popover: 230 25% 12%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 216 99% 54%; /* #1572fe Hadfield Blue */
-    --primary-foreground: 220 50% 99%; /* #fbfcfe Wash Me */
+    --primary: 255 85% 65%; /* Vibrant Neon Purple */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 272 75% 74%; /* #c08cee Luminous Lavender */
-    --secondary-foreground: 240 22% 21%; /* #292940 */
+    --secondary: 190 90% 50%; /* Electric Cyan */
+    --secondary-foreground: 230 25% 7%;
 
-    --muted: 240 22% 28%; 
-    --muted-foreground: 220 24% 91%; /* #e2e6ee Ghostly Tuna */
+    --muted: 230 20% 18%; 
+    --muted-foreground: 240 5% 70%;
 
-    --accent: 33 81% 65%; /* #eeac5c Shiny Trumpet */
-    --accent-foreground: 240 22% 21%; /* #292940 */
+    --accent: 33 90% 65%; 
+    --accent-foreground: 230 25% 7%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 220 50% 99%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 240 22% 30%;
-    --input: 240 22% 30%;
-    --ring: 216 99% 54%; /* #1572fe Hadfield Blue */
+    --border: 230 20% 20%;
+    --input: 230 20% 20%;
+    --ring: 255 85% 65%; 
   }
 }
 

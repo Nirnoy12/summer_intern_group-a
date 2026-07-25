@@ -22,6 +22,10 @@ export default function Dashboard() {
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState("");
 
+  const [courseToRemove, setCourseToRemove] = useState<string | null>(null);
+  const [removeLoading, setRemoveLoading] = useState(false);
+  const [removeError, setRemoveError] = useState("");
+
   const fetchData = async () => {
     try {
       const [userRes, playlistsRes] = await Promise.all([
@@ -55,7 +59,7 @@ export default function Dashboard() {
     try {
       const urlObj = new URL(importUrl);
       playlistId = urlObj.searchParams.get("list") || "";
-    } catch (e) {
+    } catch {
       setImportError("Invalid URL format. Please paste a valid YouTube link.");
       return;
     }
@@ -80,14 +84,18 @@ export default function Dashboard() {
   };
 
   const handleRemoveCourse = async (playlistId: string) => {
-    if (!confirm("Are you sure you want to remove this course? This action cannot be undone and will delete all progress.")) return;
+    setRemoveLoading(true);
+    setRemoveError("");
     
     try {
       await API.delete(`/api/playlists/${playlistId}`, { headers: { Authorization: `Bearer ${token}` } });
       setPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
-    } catch (err) {
+      setCourseToRemove(null);
+    } catch (err: any) {
       console.error("Failed to remove course", err);
-      alert("Failed to remove course. Please try again.");
+      setRemoveError(err.response?.data?.detail || "Failed to remove course. Please try again.");
+    } finally {
+      setRemoveLoading(false);
     }
   };
 
@@ -248,7 +256,7 @@ export default function Dashboard() {
                             className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                             onClick={(e) => {
                               e.preventDefault();
-                              handleRemoveCourse(playlist.id);
+                              setCourseToRemove(playlist.id);
                             }}
                           >
                             <Trash className="h-4 w-4" />
@@ -361,6 +369,61 @@ export default function Dashboard() {
                   "Import Course"
                 )}
               </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Remove Course Modal */}
+      {courseToRemove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-md relative glass-card border-destructive/50">
+            <button
+              onClick={() => { setCourseToRemove(null); setRemoveError(""); }}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+              disabled={removeLoading}
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <CardHeader>
+              <CardTitle className="text-xl text-destructive flex items-center gap-2">
+                <Trash className="h-5 w-5" />
+                Remove Course
+              </CardTitle>
+              <CardDescription>
+                Are you sure you want to remove this course? This action cannot be undone and will delete all your progress.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              {removeError && (
+                <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-md">
+                  {removeError}
+                </div>
+              )}
+              <div className="flex gap-3 mt-4">
+                <Button
+                  onClick={() => { setCourseToRemove(null); setRemoveError(""); }}
+                  variant="outline"
+                  className="flex-1"
+                  disabled={removeLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => handleRemoveCourse(courseToRemove)}
+                  variant="destructive"
+                  className="flex-1"
+                  disabled={removeLoading}
+                >
+                  {removeLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    "Yes, Remove"
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
