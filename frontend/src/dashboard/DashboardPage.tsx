@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/ui/
 import { Progress } from "@/ui/progress";
 import { Badge } from "@/ui/badge";
 import { Button } from "@/ui/button";
-import { Trophy, Flame, PlayCircle, Loader2, Plus, X, Trash } from "lucide-react";
+import { Trophy, Flame, PlayCircle, Loader2, Plus, X, Trash, LogOut } from "lucide-react";
 import API from "@/auth/auth";
 import { useAuth } from "@/auth/AuthContext";
 import { ThemeToggle } from "@/theme/ThemeToggle";
@@ -131,7 +131,18 @@ export default function Dashboard() {
             </h1>
             <p className="text-muted-foreground mt-1">Select a course to continue.</p>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button
+              onClick={logout}
+              variant="ghost"
+              size="sm"
+              className="flex items-center gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
+          </div>
         </header>
 
         {/* Stat Cards */}
