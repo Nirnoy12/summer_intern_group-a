@@ -1,0 +1,4 @@
+export const PARTICLE_COUNT = 80;
+export const ANIMATION_DURATION_MIN = 10;
+export const ANIMATION_DURATION_MAX = 20;
+export const INTERACTION_PARTICLE_LIFETIME_MS = 2000;

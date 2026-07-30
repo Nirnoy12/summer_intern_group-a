@@ -35,107 +35,169 @@
 │                    FastAPI Backend (Python)                      │
 │             Uvicorn ASGI server — Port: 8000                    │
 │   • Auth (JWT + Argon2)    • YouTube Data API v3 ingestion      │
-│   • Progress tracking      • Background quiz generation         │
+│   • Progress tracking      • Groq AI quiz generation            │
 └──────────┬──────────────────────────┬───────────────────────────┘
-           │ SQLModel ORM             │ httpx async
+           │ SQLModel ORM             │ httpx async (HTTPS)
            │ (SQLAlchemy 2.x)        │
-┌──────────▼──────────┐   ┌──────────▼──────────┐
-│   CockroachDB        │   │   Ollama (local LLM) │
-│   (Cloud Serverless) │   │   Model: phi3        │
-│   Port: 26257        │   │   Port: 11434        │
-└─────────────────────┘   └─────────────────────┘
+┌──────────▼──────────┐   ┌──────────▼────────────────────────────┐
+│   CockroachDB        │   │   Groq Cloud AI API                  │
+│   (Cloud Serverless) │   │   Model: llama-3.1-8b-instant        │
+│   Port: 26257        │   │   HTTPS Endpoint                     │
+└─────────────────────┘   └───────────────────────────────────────┘
 ```
 
 ---
 
 ## 📁 Directory Structure
 
-Every folder is **self-contained by feature**. A developer working on a feature should find *everything they need* in one folder.
-
 ```
 summer_intern_group-a/
 │
-├── backend/                        # Python FastAPI backend
-│   ├── tests/                      # ✅ All backend tests live here
-│   │   ├── __init__.py
-│   │   └── test_environment.py     # Env, DB, API, LLM, business logic tests
+├── backend/                              # FastAPI Backend (Python 3.12)
+│   ├── core/                             # Core Infrastructure & Configuration
+│   │   ├── deps.py                       # Auth, DB Session & JWT Dependencies
+│   │   └── lifespan.py                   # App Lifespan & DB Initialization
 │   │
-│   ├── main.py                     # 🚀 App entry point + ALL API route handlers
-│   ├── models.py                   # 🗄 All SQLModel ORM models (DB schema)
-│   ├── llm_service.py              # 🤖 Ollama quiz generation service
+│   ├── models/                           # Modular SQLModel Schemas (CockroachDB)
+│   │   ├── playlist.py                   # Playlist & Video Schemas
+│   │   ├── quiz.py                       # SharedQuiz, Quiz & Question Schemas
+│   │   └── user.py                       # User & XpLog Schemas
 │   │
-│   ├── .env                        # 🔒 Your local secrets (NEVER commit)
-│   ├── .env.example                # 📋 Template — copy to .env and fill in
-│   ├── requirements.txt            # 📦 Pinned production dependencies
-│   ├── requirements-dev.txt        # 🛠 Pinned dev/test dependencies
-│   └── pyproject.toml              # ⚙ Project metadata + tool config
+│   ├── routers/                          # Modular API Endpoints & Handlers
+│   │   ├── auth.py                       # Authentication (Register, Login, Token)
+│   │   ├── users.py                      # User Profile & Stats Endpoint (/users/me)
+│   │   ├── playlists.py                  # Playlist Router Dispatcher
+│   │   ├── playlists_ingest.py           # YouTube Playlist Ingestion Pipeline
+│   │   ├── playlists_get.py              # Playlist Retrieval & Listing
+│   │   ├── playlists_delete.py           # Playlist Deletion
+│   │   ├── playlists_yt_fetch.py         # YouTube Data API Integration
+│   │   ├── playlists_videos.py           # Video Sequence & Progress Endpoint
+│   │   ├── playlists_helpers.py          # Sequence & Chapter Helper Utilities
+│   │   ├── progress.py                   # Anti-Cheat Video Progress Tracking
+│   │   ├── progress_helpers.py           # Seek Prevention & XP Calculation
+│   │   ├── quizzes.py                    # Quiz Start & Submission Router
+│   │   ├── quizzes_helpers.py            # Quiz Queue & Attempt Verification
+│   │   └── video_durations.py            # YouTube Video Duration Utilities
+│   │
+│   ├── llm_service/                      # Groq AI Quiz Generation Engine
+│   │   ├── config.py                     # Groq Model & Batch Configuration
+│   │   ├── generator.py                  # Async Quiz Pool Generator
+│   │   ├── llm_caller.py                 # Groq Cloud API Caller (llama-3.1-8b-instant)
+│   │   ├── llm_prompt.py                 # Structured Prompt & JSON Parsing
+│   │   ├── questions.py                  # Question Validation & DB Persistence
+│   │   ├── queue.py                      # Priority Generation Queue
+│   │   ├── transcript.py                 # YouTube Transcript API Fetcher
+│   │   └── worker.py                     # Background Worker Task Loop
+│   │
+│   ├── tests/                            # Pytest Automated Test Suite
+│   │   ├── test_api.py                   # Auth, Route & Authorization Tests
+│   │   ├── test_db.py                    # Database Model & Query Tests
+│   │   ├── test_environment.py           # Environment & Secret Validation Tests
+│   │   └── test_llm.py                   # Groq AI Service & Quiz Logic Tests
+│   │
+│   ├── .env                              # Local Environment Secrets (Git Ignored)
+│   ├── .env.example                      # Template Environment Configuration
+│   ├── main.py                           # FastAPI App Entry Point
+│   ├── pyproject.toml                    # Project Metadata & Tool Config
+│   ├── requirements.txt                  # Production Dependencies
+│   └── requirements-dev.txt              # Development & Testing Dependencies
 │
-├── frontend/                       # React + TypeScript frontend
-│   ├── src/
-│   │   ├── auth/                   # 🔐 FEATURE: Authentication
-│   │   │   ├── AuthContext.tsx     #   React context (token state, login, logout)
-│   │   │   ├── auth.ts             #   Axios instance with base URL
-│   │   │   ├── LoginPage.tsx       #   /login route
-│   │   │   └── RegisterPage.tsx    #   /register route
+├── frontend/                             # React + Vite + TypeScript Frontend
+│   ├── src/                              # Modular Source Code
+│   │   ├── auth/                         # Authentication Feature Module
+│   │   │   ├── auth.ts                   # Axios API Client Configuration
+│   │   │   ├── AuthContext.tsx           # React Context for Auth State
+│   │   │   ├── LoginForm.tsx             # Modular Login Form Component
+│   │   │   ├── LoginPage.tsx             # Login Route Container Page
+│   │   │   ├── RegisterForm.tsx          # Modular Registration Form Component
+│   │   │   └── RegisterPage.tsx          # Register Route Container Page
 │   │   │
-│   │   ├── dashboard/              # 📊 FEATURE: Main dashboard
-│   │   │   └── DashboardPage.tsx   #   /dashboard route (playlist management, XP)
+│   │   ├── dashboard/                    # Main Learning Dashboard
+│   │   │   ├── CourseCard.tsx            # Modular Course Card Component
+│   │   │   ├── DashboardPage.tsx         # Main Dashboard Layout Page
+│   │   │   ├── ImportModal.tsx           # YouTube Playlist Import Modal
+│   │   │   ├── RemoveCourseModal.tsx     # Course Removal Confirmation Modal
+│   │   │   ├── StatsBar.tsx              # Gamified Level/XP & Streak Bar
+│   │   │   └── useDashboardData.ts       # Custom Hook for Dashboard State
 │   │   │
-│   │   ├── course-player/          # 🎬 FEATURE: Course learning experience
-│   │   │   ├── CoursePlayerPage.tsx #  /playlist/:id route (main layout)
-│   │   │   ├── QuizView.tsx         #  Quiz UI component
-│   │   │   ├── useYouTubePlayer.ts  #  YouTube IFrame API hook
-│   │   │   ├── useProctoring.ts     #  MediaPipe attention detection hook
-│   │   │   ├── WebcamPermissionGate.tsx # Webcam permission request UI
-│   │   │   ├── AttentionOverlay.tsx     # Pause-on-distraction overlay
-│   │   │   └── CameraPip.tsx            # Picture-in-picture webcam view
+│   │   ├── course-player/                # Interactive Video & Quiz Player
+│   │   │   ├── AttentionOverlay.tsx      # Distraction Pause Alert Overlay
+│   │   │   ├── CameraPip.tsx             # Picture-in-Picture Webcam Feedback
+│   │   │   ├── CoursePlayerPage.tsx      # Main Player Page Layout
+│   │   │   ├── PlayerControls.tsx        # Video Control Bar
+│   │   │   ├── PlayerSidebar.tsx         # Chapter Playlist & Quiz Sidebar
+│   │   │   ├── WebcamPermissionGate.tsx  # MediaPipe Proctoring Permission Gate
+│   │   │   ├── useCoursePlayer.ts        # Custom Hook for Course Player Logic
+│   │   │   │
+│   │   │   ├── proctoring/               # AI Webcam Proctoring Subsystem
+│   │   │   │   ├── headPose.ts           # Head Pose (Yaw/Pitch) Calculator
+│   │   │   │   ├── initFaceLandmarker.ts # MediaPipe Task Initialization
+│   │   │   │   └── useProctoring.ts      # Gaze Tracking & Distraction Hook
+│   │   │   │
+│   │   │   ├── quiz/                     # Quiz Subsystem Components
+│   │   │   │   ├── QuizQuestion.tsx      # Question & Multiple Choice UI
+│   │   │   │   ├── QuizResult.tsx        # Score Summary & XP Result View
+│   │   │   │   └── QuizView.tsx          # Quiz State & Submission Container
+│   │   │   │
+│   │   │   └── ytPlayer/                 # YouTube Player Integration
+│   │   │       ├── loadYouTubeAPI.ts     # Asynchronous IFrame API Loader
+│   │   │       ├── types.ts              # TypeScript Interfaces for Player API
+│   │   │       └── useYouTubePlayer.ts   # Player Controls & Event Hook
 │   │   │
-│   │   ├── landing/                # 🏠 FEATURE: Public landing page
-│   │   │   ├── LandingPage.tsx     #   / route
-│   │   │   ├── Navbar.tsx          #   Navigation bar
-│   │   │   └── Footer.tsx          #   Footer
+│   │   ├── landing/                      # Landing Page Feature Module
+│   │   │   ├── FeaturesSection.tsx       # Features Grid Component
+│   │   │   ├── HeroSection.tsx           # Hero CTA Component
+│   │   │   ├── HowItWorksSection.tsx     # 3-Step Process Component
+│   │   │   └── LandingPage.tsx           # Public Home Page Container
 │   │   │
-│   │   ├── ui/                     # 🧱 SHARED: Reusable base UI components
+│   │   ├── styles/                       # Modular CSS System
+│   │   │   ├── animations.css            # Custom Animations & Keyframes
+│   │   │   ├── base.css                  # Base Styles & CSS Variables
+│   │   │   ├── components.css            # Component Layout & Glassmorphism Rules
+│   │   │   └── utilities.css             # Helper Utility Classes
+│   │   │
+│   │   ├── theme/                        # Dynamic Design & Particle Theme
+│   │   │   ├── AnimatedBackground.tsx    # Interactive Canvas Background
+│   │   │   ├── ThemeToggle.tsx           # Dark / Light Mode Switch
+│   │   │   ├── useTheme.ts               # Theme State Hook
+│   │   │   └── animatedBg/               # Particle Animation Engine
+│   │   │       ├── constants.ts          # Particle Dynamics Configuration
+│   │   │       └── useParticles.ts       # Canvas Particle Movement Hook
+│   │   │
+│   │   ├── ui/                           # Base UI Primitives (shadcn)
+│   │   │   ├── avatar.tsx
+│   │   │   ├── badge.tsx
 │   │   │   ├── button.tsx
 │   │   │   ├── card.tsx
 │   │   │   ├── input.tsx
-│   │   │   ├── badge.tsx
+│   │   │   ├── label.tsx
 │   │   │   ├── progress.tsx
-│   │   │   ├── avatar.tsx
 │   │   │   └── separator.tsx
 │   │   │
-│   │   ├── theme/                  # 🎨 SHARED: Theming utilities
-│   │   │   ├── ThemeToggle.tsx     #   Dark/light mode button
-│   │   │   └── AnimatedBackground.tsx # Animated gradient background
+│   │   ├── lib/                          # Utility Utilities
+│   │   │   └── utils.ts                  # Tailwind class merge helper (cn)
 │   │   │
-│   │   ├── types/                  # 📝 SHARED: TypeScript type definitions
-│   │   │   └── youtube.d.ts        #   YouTube IFrame API types
-│   │   │
-│   │   ├── api/                    # 🌐 SHARED: (Future) API client modules
-│   │   │   └── (empty — see auth/auth.ts for the current axios instance)
-│   │   │
-│   │   ├── lib/                    # 🔧 SHARED: Pure utility functions
-│   │   │   └── (utility helpers)
-│   │   │
-│   │   ├── App.tsx                 # Root router (React Router v7 routes)
-│   │   ├── main.tsx                # React DOM entry point
-│   │   └── index.css               # Global CSS + Tailwind v4 design tokens
+│   │   ├── App.tsx                       # React Router App Component
+│   │   ├── main.tsx                      # Vite React DOM Entry Point
+│   │   └── index.css                     # Primary Tailwind + Modular CSS Import
 │   │
-│   ├── scripts/
-│   │   └── verify-env.mjs          # ✅ Frontend environment verification
-│   │
-│   ├── public/                     # Static assets served as-is
-│   ├── package.json                # Pinned npm dependencies + run scripts
-│   ├── vite.config.ts              # Vite bundler configuration
-│   ├── tsconfig.json               # TypeScript compiler config (references)
-│   ├── tsconfig.app.json           # TS config for src/
-│   └── tailwind.config.js          # Tailwind CSS config
+│   ├── eslint.config.js                  # ESLint Code Quality Rules
+│   ├── index.html                        # Single Page App HTML Template
+│   ├── package.json                      # Frontend Dependencies & Scripts
+│   ├── postcss.config.js                 # PostCSS Configuration
+│   ├── tailwind.config.js                # Tailwind CSS v4 Configuration
+│   ├── tsconfig.json                     # Main TypeScript Configuration
+│   ├── tsconfig.app.json                 # Application TypeScript Rules
+│   └── vite.config.ts                    # Vite Bundler & Path Alias Config
 │
-├── .gitignore                      # Git ignore rules
-├── .husky/                         # Git hooks (pre-commit linting)
-├── README.md                       # ← You are here
-├── CONTRIBUTING.md                 # Contribution guide
-└── project_report.md               # Full academic project report
+├── .gitignore                            # Version Control Exclusions
+├── CONTRIBUTING.md                       # Developer Contribution Guidelines
+├── DEPLOYMENT.md                         # Production Deployment Instructions
+├── LICENSE                               # Open Source License
+├── Makefile                              # Automation Command Shortcuts
+├── Procfile                              # Heroku / PaaS Process Definitions
+├── README.md                             # Master Project Documentation
+└── project_report.md                     # Comprehensive Project Report
 ```
 
 ---

@@ -7,37 +7,95 @@ Welcome to the frontend of the Gamified Learning Management System (LMS). This a
 ## 🛠️ Tech Stack
 
 - **Framework**: [React 19](https://react.dev/) + [Vite](https://vite.dev/) (fast builds & HMR)
-- **Language**: TypeScript (type safety)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) (modern CSS framework)
+- **Language**: TypeScript (strict type safety)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) + Modular Vanilla CSS system (`src/styles/`)
 - **Icons & Animations**: [Lucide React](https://lucide.dev/) + [Framer Motion](https://www.framer.com/motion/)
-- **Components**: Inspired by `shadcn/ui` custom styling
+- **Components**: Customized `shadcn/ui` UI primitives (`src/ui/`)
 - **Computer Vision**: [MediaPipe Face Mesh](https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker) (FaceLandmarker task compiled to WebAssembly)
 - **HTTP Client**: [Axios](https://axios-http.com/)
 
 ---
 
-## 📂 Source Code Map (`src/`)
+## 📁 Source Code Map (`src/`)
 
 ```
 frontend/src/
-├── api/              # API helpers and configurations
-├── assets/           # Static files, global stylesheets
-├── auth/             # LoginPage, RegisterPage, AuthContext, and Axios API configurations
-├── course-player/    # Course player workspace, including:
-│   ├── CoursePlayerPage.tsx      # Main layout for watching lessons and tracking progress
-│   ├── QuizView.tsx              # Renders the dynamic quizzes generated from transcriptions
-│   ├── AttentionOverlay.tsx      # Warning overlay triggered when looking away
-│   ├── WebcamPermissionGate.tsx  # Initial permission interface for webcam access
-│   ├── useYouTubePlayer.ts       # Hook wrapping YouTube Player API
-│   └── useProctoring.ts          # Hook running MediaPipe face mesh proctoring loop
-├── dashboard/        # DashboardPage (User stats, course roadmaps, and course ingestion)
-├── landing/          # LandingPage, Navbar, and Footer
-├── lib/              # Utility configurations (e.g., clsx, tailwind-merge)
-├── theme/            # ThemeContext, ThemeToggle, and AnimatedBackground components
-├── types/            # App-wide TypeScript definitions
-├── ui/               # Standard UI components (Card, Button, Progress, Badge, Toast)
-├── App.tsx           # Client-side router configuration (React Router Dom)
-└── main.tsx          # App entrypoint
+├── auth/                         # 🔐 FEATURE: Authentication
+│   ├── auth.ts                   #   Axios instance with token interceptors
+│   ├── AuthContext.tsx           #   React context (token state, login, logout)
+│   ├── LoginForm.tsx             #   Modular Login Form Component
+│   ├── LoginPage.tsx             #   /login route page
+│   ├── RegisterForm.tsx          #   Modular Register Form Component
+│   └── RegisterPage.tsx          #   /register route page
+│
+├── dashboard/                    # 📊 FEATURE: Learning Dashboard
+│   ├── CourseCard.tsx            #   Modular Course Card Component
+│   ├── DashboardPage.tsx         #   /dashboard route page
+│   ├── ImportModal.tsx           #   YouTube Playlist Import Modal
+│   ├── RemoveCourseModal.tsx     #   Course Removal Confirmation Modal
+│   ├── StatsBar.tsx              #   User XP, Level, and Streak Bar
+│   └── useDashboardData.ts       #   Custom hook for dashboard state
+│
+├── course-player/                # 🎬 FEATURE: Interactive Course Player
+│   ├── CoursePlayerPage.tsx      #   /playlist/:id main workspace
+│   ├── PlayerControls.tsx        #   Video play/pause & skip controls
+│   ├── PlayerSidebar.tsx         #   Video list & quiz navigation sidebar
+│   ├── WebcamPermissionGate.tsx  #   Webcam permission interface
+│   ├── AttentionOverlay.tsx      #   Distraction alert overlay
+│   ├── CameraPip.tsx             #   Picture-in-picture webcam feedback
+│   ├── useCoursePlayer.ts        #   Custom hook for course player state
+│   │
+│   ├── proctoring/               #   🤖 AI Proctoring Subsystem
+│   │   ├── headPose.ts           #   Head pose (Yaw/Pitch) calculator
+│   │   ├── initFaceLandmarker.ts #   MediaPipe FaceLandmarker loader
+│   │   └── useProctoring.ts      #   Gaze tracking & distraction hook
+│   │
+│   ├── quiz/                     #   🧩 Quiz Subsystem
+│   │   ├── QuizQuestion.tsx      #   Question & multiple-choice component
+│   │   ├── QuizResult.tsx        #   Score breakdown & XP earned component
+│   │   └── QuizView.tsx          #   Quiz container & submission handler
+│   │
+│   └── ytPlayer/                 #   🎥 YouTube IFrame Integration
+│       ├── loadYouTubeAPI.ts     #   Async IFrame API loader
+│       ├── types.ts              #   Player TypeScript types
+│       └── useYouTubePlayer.ts   #   YouTube player controls hook
+│
+├── landing/                      # 🏠 FEATURE: Landing Page
+│   ├── FeaturesSection.tsx       #   Platform features grid
+│   ├── HeroSection.tsx           #   Hero headline & call to action
+│   ├── HowItWorksSection.tsx     #   3-step workflow demonstration
+│   └── LandingPage.tsx           #   / public home page
+│
+├── styles/                       # 🎨 Modular CSS Design System
+│   ├── animations.css            #   Custom animations & keyframes
+│   ├── base.css                  #   Base CSS reset & variables
+│   ├── components.css            #   Glassmorphism & component rules
+│   └── utilities.css             #   Helper utility classes
+│
+├── theme/                        # 🌗 Theme Engine
+│   ├── AnimatedBackground.tsx    #   Interactive background container
+│   ├── ThemeToggle.tsx           #   Dark / light mode toggle
+│   ├── useTheme.ts               #   Theme state hook
+│   └── animatedBg/               #   Particle Animation Subsystem
+│       ├── constants.ts          #   Particle constants
+│       └── useParticles.ts       #   Interactive particle physics hook
+│
+├── ui/                           # 🧱 Base UI Primitives (shadcn)
+│   ├── avatar.tsx
+│   ├── badge.tsx
+│   ├── button.tsx
+│   ├── card.tsx
+│   ├── input.tsx
+│   ├── label.tsx
+│   ├── progress.tsx
+│   └── separator.tsx
+│
+├── lib/                          # 🔧 Utilities
+│   └── utils.ts                  #   Tailwind class merge helper (`cn`)
+│
+├── App.tsx                       # Root router configuration
+├── main.tsx                      # React DOM entry point
+└── index.css                     # Primary stylesheet & imports
 ```
 
 ---
@@ -45,41 +103,30 @@ frontend/src/
 ## ⚙️ Key Technical Implementations
 
 ### 1. Web proctoring via MediaPipe FaceLandmarker (`useProctoring.ts`)
-To increase accountability, the application includes a webcam-based proctoring system that tracks user attention:
-* It requests access to the user's webcam and feeds the stream to a hidden `<video>` element.
-* Every ~66ms (throttled to ~15fps for low CPU consumption), MediaPipe's WebAssembly-based **Face Mesh** model processes the frame.
-* It estimates head pose by calculating the horizontal (**yaw**) and vertical (**pitch**) ratios of the nose tip relative to key facial landmarks (nose bridge, eye edges, forehead, and chin).
-* If the user turns their head past the threshold (yaw > 25° or pitch > 25°), or if no face is detected in the frame, the "look away" timer starts.
-* If attention is lost for more than **3 seconds**, an attention-loss callback is triggered, pausing the course video and popping up a glassmorphic attention warning overlay (`AttentionOverlay.tsx`).
+Tracks user attention using webcam frames:
+- Processed via WebAssembly-based **Face Mesh** at ~15fps.
+- Calculates head pose (**yaw** and **pitch** angles).
+- Triggers `onAttentionLost` if distracted for >3 seconds, pausing video playback and presenting an attention warning overlay.
 
 ### 2. YouTube IFrame API Integration (`useYouTubePlayer.ts`)
-* Injects the standard YouTube IFrame API script dynamically into the DOM.
-* Connects a custom controller ref to the YouTube video iframe.
-* Exposes utility callbacks to parent components (`play`, `pause`, `seekTo`, `getCurrentTime`, `getDuration`).
-* Automatically pauses the video playback when the user gets distracted (notified by the proctoring hook).
+- Injects YouTube IFrame API dynamically into the DOM.
+- Connects video controls with proctoring callbacks to automatically pause video when distraction is detected.
 
-### 3. Gamification Mechanics & Dashboard
-* **Streaks**: Refreshed dynamically on login. If the user completes a video on consecutive days, the streak count increases.
-* **XP & Level Progression**: Displays animated progress bars showing the remaining XP needed to level up. XP is earned by completing lessons (100 XP) and scoring high on quizzes (300 XP).
-* **Course Ingestion**: Users can paste any public YouTube playlist URL directly. The frontend parses the `list=` URL parameter and posts it to the backend to instantly ingest and build the learning path.
+### 3. Gamification & Course Ingestion
+- **Level & XP System**: Tracks XP per video completion (50 XP) and quiz attempts.
+- **Playlist Ingestion**: Parses YouTube playlist URLs (`list=...`), fetches video metadata, and constructs structured course tracks.
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Build & Verification Commands
 
-1. Set up dependencies:
-   ```bash
-   npm install
-   ```
-2. Start the Vite server locally:
-   ```bash
-   npm run dev
-   ```
-3. Compile for production:
-   ```bash
-   npm run build
-   ```
-4. Verify code linting:
-   ```bash
-   npm run lint
-   ```
+```bash
+# Install dependencies
+npm install
+
+# Start local dev server
+npm run dev
+
+# Compile for production
+npm run build
+```
