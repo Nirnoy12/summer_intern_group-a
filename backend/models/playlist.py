@@ -1,0 +1,40 @@
+import uuid
+from datetime import datetime
+from typing import Optional, Dict, Any
+from sqlmodel import SQLModel, Field
+from sqlalchemy import Column, JSON, UniqueConstraint
+
+class Playlist(SQLModel, table=True):
+    __tablename__ = "playlists"
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "yt_playlist_id", name="uq_user_playlist"),
+    )
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    yt_playlist_id: str = Field(index=True)
+    title: str
+    description: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class Video(SQLModel, table=True):
+    __tablename__ = "videos"
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    playlist_id: uuid.UUID = Field(foreign_key="playlists.id")
+    yt_video_id: str
+    sequence_order: int
+    title: str
+    xp_reward: int = Field(default=50)
+    duration_seconds: int = Field(default=0)
+    yt_metadata: Dict[str, Any] = Field(default={}, sa_column=Column(JSON))
+
+class UserProgress(SQLModel, table=True):
+    __tablename__ = "user_progress"
+
+    user_id: uuid.UUID = Field(primary_key=True, foreign_key="users.id")
+    video_id: uuid.UUID = Field(primary_key=True, foreign_key="videos.id")
+    highest_watched_second: float = Field(default=0)
+    last_watched_second: float = Field(default=0)
+    last_updated: datetime = Field(default_factory=datetime.utcnow)
+    is_completed: bool = Field(default=False)
+    completed_at: Optional[datetime] = None

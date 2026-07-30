@@ -5,7 +5,7 @@ build-backend = "setuptools.backends.legacy:build"
 [project]
 name = "lms-backend"
 version = "1.0.0"
-description = "Gamified LMS Backend — FastAPI + SQLModel + CockroachDB + Ollama"
+description = "Gamified LMS Backend — FastAPI + SQLModel + CockroachDB + Groq AI"
 requires-python = ">=3.11,<3.13"
 
 dependencies = [
