@@ -25,7 +25,8 @@ Key third-party tools and services utilized include:
 - **CockroachDB:** As a highly available, distributed SQL database.
 - **React 19 & Tailwind CSS v4:** For building a responsive, glassmorphic user interface.
 - **YouTube APIs:** Data API v3 and IFrame Player API for content ingestion and playback.
-- **Ollama & MediaPipe:** For local AI quiz generation and webcam-based attention proctoring.
+- **Groq Cloud AI & MediaPipe:** For high-speed cloud AI quiz generation (`llama-3.1-8b-instant`) and webcam-based attention proctoring.
+- **Vite & React Ecosystem:** Providing rapid development tools and modular state management.
 
 This report has not been submitted for any other programme, qualification, or assessment.
 
@@ -37,7 +38,7 @@ The team extends its gratitude to the project mentor and supervisor for their te
 
 Special thanks to the open-source communities:
 - The maintainers of FastAPI and React for their extensive documentation.
-- The developers behind Ollama and MediaPipe for making advanced AI models accessible locally.
+- The developers behind Groq Cloud AI and MediaPipe for making advanced AI models accessible.
 - Cockroach Labs for providing a robust serverless database tier.
 
 ---
@@ -50,7 +51,7 @@ The system's core capabilities include:
 - **Automated Ingestion:** Importing full playlists and video metadata via the YouTube Data API.
 - **Progress Enforcement:** Tracking playback to the second and strictly locking future lessons until current ones are completed.
 - **Gamification Mechanics:** Rewarding learners with Experience Points (XP), level progressions, and daily login streaks.
-- **AI Comprehension Checks:** Utilizing Ollama (qwen2.5:3b) to generate a pool of 60 multiple-choice questions from video transcripts, requiring a 70% passing score.
+- **AI Comprehension Checks:** Utilizing Groq Cloud AI (`llama-3.1-8b-instant`) to generate a pool of multiple-choice questions from video transcripts, requiring a 70% passing score.
 - **Proctoring:** Employing MediaPipe Face Landmarker to pause videos if the learner looks away for over three seconds.
 
 ---
@@ -334,20 +335,23 @@ The following sequence of screenshots demonstrates the end-to-end user journey t
 The project was meticulously organized to maintain a clean separation of concerns between the frontend UI, backend logic, and necessary operational scripts. Below is a detailed breakdown of the complete folder and file structure.
 
 **Root Directory (`summer_intern_group-a/`)**
-The root directory acts as the container for the entire monorepo. It houses the fundamental `README.md` containing high-level project documentation, and a `Makefile` designed to orchestrate common development tasks like booting servers or running test suites. 
+The root directory acts as the container for the entire repository. It houses the fundamental `README.md` containing high-level project documentation, and a `Makefile` designed to orchestrate common development tasks.
 
 **Backend Directory (`backend/`)**
-The backend heavily utilizes the FastAPI framework and is structured for modularity.
-- `main.py`: This is the crucial entry point for the backend, bootstrapping the application and mounting routers.
-- `models.py`: Contains every SQLModel ORM definition, mapping Python classes directly to our CockroachDB tables.
-- `llm_service.py`: Isolates all logic related to interacting with Ollama, fetching transcripts, and parsing JSON quizzes.
-- **Core & Routers Packages (`core/`, `routers/`)**: Contains shared dependencies (`deps.py`) and modular endpoints (`auth.py`, `playlists.py`, `progress.py`, `quizzes.py`).
+The backend heavily utilizes the FastAPI framework and is structured into modular, domain-driven packages:
+- `main.py`: Entry point for bootstrapping the FastAPI application and mounting CORS middleware.
+- **Core Package (`core/`)**: Houses application lifespan handlers (`lifespan.py`) and authentication/DB dependency injectors (`deps.py`).
+- **Models Package (`models/`)**: Contains modular SQLModel ORM declarations mapped to CockroachDB tables (`user.py`, `playlist.py`, `quiz.py`).
+- **Routers Package (`routers/`)**: Contains modular API endpoints grouped by domain (`auth.py`, `users.py`, `playlists.py`, `progress.py`, `quizzes.py`).
+- **LLM Engine Package (`llm_service/`)**: Encapsulates Groq Cloud AI quiz pool generation, priority async queuing (`queue.py`), prompt building (`llm_prompt.py`), and background worker execution (`worker.py`).
+- **Test Suite Package (`tests/`)**: Automated pytest suite verifying auth flows, database operations, and Groq LLM response handling (`test_api.py`, `test_db.py`, `test_llm.py`).
 
 **Frontend Directory (`frontend/`)**
-The frontend is a React application built with Vite, emphasizing modern design and robust component architecture.
-- `package.json` & `vite.config.ts`: Defines npm dependencies and configures the Vite bundler.
+The frontend is a React 19 application built with Vite, emphasizing modern design and robust component architecture.
+- `package.json` & `vite.config.ts`: Defines npm dependencies and configures Vite aliases.
 - **Source Package (`src/`)**:
-  - `main.tsx` & `App.tsx`: The primary React DOM entry point and root routing component.
-  - **Feature Modules (`auth/`, `dashboard/`, `course-player/`)**: Contains all complex visual components and custom hooks (like `useYouTubePlayer` and `useProctoring`) isolated by feature area.
-  - **UI & Theme Modules (`ui/`, `theme/`)**: Houses reusable, atomic base components and manages the dark/light mode `ThemeToggle` alongside the `AnimatedBackground`.
+  - `main.tsx` & `App.tsx`: Primary React DOM entry point and client-side routing component.
+  - **Feature Modules (`auth/`, `dashboard/`, `course-player/`, `landing/`)**: Houses feature-isolated visual components and custom hooks (such as `useCoursePlayer`, `useYouTubePlayer`, and `useProctoring`).
+  - **Subsystems (`proctoring/`, `quiz/`, `ytPlayer/`, `animatedBg/`)**: Isolated sub-modules for computer vision face landmarking, quiz UI controls, and particle canvas rendering.
+  - **UI & Theme Modules (`ui/`, `theme/`, `styles/`)**: Contains atomic shadcn-inspired components, theme context toggles, and a modular vanilla CSS design system.
 
